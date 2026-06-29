@@ -1,0 +1,16 @@
+{
+  "name": "THE DED",
+  "short_name": "THE DED",
+  "description": "Стриминг сериала THE DED",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0a0a0a",
+  "theme_color": "#e50914",
+  "icons": [
+    {
+      "src": "https://github.com/ivansabaev04-svg/theded-videos/releases/download/v1/icon.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

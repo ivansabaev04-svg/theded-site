@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>THE DED — Стриминг</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="icon" type="image/png" href="https://github.com/ivansabaev04-svg/theded-videos/releases/download/v1/icon.png">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#e50914">
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getDatabase, ref, set, get, push, onValue, remove, update, child } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyBLJApWARoFisQ0QA-nLDjPR-tI59Rg1Vs",
+            authDomain: "the-ded.firebaseapp.com",
+            databaseURL: "https://the-ded-default-rtdb.firebaseio.com",
+            projectId: "the-ded",
+            storageBucket: "the-ded.firebasestorage.app",
+            messagingSenderId: "148784598507",
+            appId: "1:148784598507:web:17bb3d340113b5b9415dae"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
+        window.fbDb = db;
+        window.fbRef = ref;
+        window.fbSet = set;
+        window.fbGet = get;
+        window.fbPush = push;
+        window.fbOnValue = onValue;
+        window.fbRemove = remove;
+        window.fbUpdate = update;
+        window.fbChild = child;
+
+        window.dispatchEvent(new Event('firebaseReady'));
+    </script>
+</head>
+<body>
+
+    <!-- ЗАГРУЗЧИК -->
+    <div class="loading-screen" id="loading-screen">
+        <div class="loading-spinner"></div>
+        <div class="loading-text">ЗАГРУЗКА...</div>
+    </div>
+
+    <!-- РЕКЛАМА ПОДПИСКИ -->
+    <div class="sub-ad-overlay" id="sub-ad">
+        <div class="sub-ad-box">
+            <button class="sub-ad-close" onclick="closeSubAd()">✕</button>
+            <div class="sub-ad-badge">✨ PREMIUM</div>
+            <div class="sub-ad-title">THE DED+</div>
+            <ul class="sub-ad-features">
+                <li>Ранний доступ к новым сериям</li>
+                <li>Эксклюзивные сериалы</li>
+                <li>Золотой значок PREMIUM</li>
+                <li>Личные сообщения</li>
+            </ul>
+            <div class="sub-ad-price">10 ₽</div>
+            <button class="sub-ad-btn" onclick="closeSubAd();showPage('profile');">👑 ПОЛУЧИТЬ ПОДПИСКУ</button>
+            <button class="sub-ad-skip" onclick="closeSubAd()">Пропустить →</button>
+        </div>
+    </div>
+
+    <!-- АДМИН ПАНЕЛЬ -->
+    <div class="admin-overlay" id="admin-overlay">
+        <div class="admin-header">
+            <div class="admin-title">🔧 АДМИН — THE DED</div>
+            <button class="btn btn-outline" onclick="closeAdmin()">✕ ЗАКРЫТЬ</button>
+        </div>
+        <div class="stats-grid" id="admin-stats"></div>
+        <div class="admin-tabs">
+            <button class="admin-tab active" onclick="switchAdminTab('users')">👥 ПОЛЬЗОВАТЕЛИ</button>
+            <button class="admin-tab" onclick="switchAdminTab('payments')">💰 ПОПОЛНЕНИЯ</button>
+            <button class="admin-tab" onclick="switchAdminTab('comments')">💬 КОММЕНТАРИИ</button>
+            <button class="admin-tab" onclick="switchAdminTab('tickets')">📨 ОБРАЩЕНИЯ <span class="badge-new" id="tickets-badge" style="display:none;">0</span></button>
+            <button class="admin-tab" onclick="switchAdminTab('promos')">🎁 ПРОМОКОДЫ</button>
+            <button class="admin-tab" onclick="switchAdminTab('episodes')">🔒 СЕРИИ</button>
+        </div>
+
+        <div class="admin-edit-form" id="admin-edit-form">
+            <h3>✏️ РЕДАКТИРОВАТЬ ПОЛЬЗОВАТЕЛЯ</h3>
+            <input type="hidden" id="edit-user-email">
+            <input type="text" id="edit-user-name" placeholder="Новое имя">
+            <input type="text" id="edit-user-avatar" placeholder="Новый эмодзи аватар">
+            <input type="text" id="edit-user-bio" placeholder="Описание профиля">
+            <button class="action-btn green" style="width:100%;padding:12px;" onclick="saveEditUser()">💾 СОХРАНИТЬ</button>
+            <button class="action-btn gray" style="width:100%;padding:12px;margin-top:5px;" onclick="cancelEditUser()">ОТМЕНА</button>
+        </div>
+
+        <div class="admin-section active" id="admin-users">
+            <table class="admin-table">
+                <thead><tr><th>EMAIL</th><th>ИМЯ</th><th>БАЛАНС</th><th>СТАТУС</th><th>ДЕЙСТВИЯ</th></tr></thead>
+                <tbody id="admin-users-body"></tbody>
+            </table><div class="boost-form" id="boost-form-section">
+    <h4>🚀 НАКРУТКА (только для админа)</h4>
+
+    <h5 style="color:#888;font-size:0.85rem;margin-top:10px;">👁 НАКРУТКА ПРОСМОТРОВ</h5>
+    <div class="boost-row">
+        <input type="number" id="boost-views-ep" placeholder="Номер серии (1-50)" min="1" max="50">
+        <input type="number" id="boost-views-count" placeholder="Сколько просмотров добавить" min="1">
+        <button class="boost-btn" onclick="boostViews()">➕ ПРОСМОТРЫ</button>
+    </div>
+
+    <h5 style="color:#888;font-size:0.85rem;margin-top:15px;">❤️ НАКРУТКА ЛАЙКОВ</h5>
+    <div class="boost-row">
+        <input type="number" id="boost-likes-ep" placeholder="Номер серии (1-50)" min="1" max="50">
+        <input type="number" id="boost-likes-count" placeholder="Сколько лайков добавить" min="1">
+        <button class="boost-btn" onclick="boostLikes()">➕ ЛАЙКИ</button>
+    </div>
+
+    <h5 style="color:#888;font-size:0.85rem;margin-top:15px;">👥 НАКРУТКА ПОДПИСЧИКОВ</h5>
+    <div class="boost-row">
+        <select id="boost-followers-user">
+            <option value="">Выбери пользователя</option>
+        </select>
+        <input type="number" id="boost-followers-count" placeholder="Сколько подписчиков" min="1">
+        <button class="boost-btn" onclick="boostFollowers()">➕ ПОДПИСЧИКИ</button>
+    </div>
+</div>
+        </div>
+        <div class="admin-section" id="admin-payments">
+            <div class="payment-form">
+                <h3>➕ ЗАПИСАТЬ ПОПОЛНЕНИЕ</h3>
+                <select id="pay-user-select"><option value="">Выбери пользователя</option></select>
+                <input type="number" id="pay-amount" placeholder="Сумма в рублях" min="1">
+                <button class="action-btn green" style="width:100%;padding:12px;" onclick="recordPayment()">✅ ЗАПИСАТЬ</button>
+            </div>
+            <table class="admin-table">
+                <thead><tr><th>ДАТА</th><th>EMAIL</th><th>ИМЯ</th><th>СУММА</th></tr></thead>
+                <tbody id="admin-payments-body"></tbody>
+            </table>
+        </div>
+        <div class="admin-section" id="admin-comments">
+            <table class="admin-table">
+                <thead><tr><th>ДАТА</th><th>АВТОР</th><th>СЕРИЯ</th><th>ТЕКСТ</th><th>ДЕЙСТВИЯ</th></tr></thead>
+                <tbody id="admin-comments-body"></tbody>
+            </table>
+        </div>
+        <div class="admin-section" id="admin-tickets">
+            <div id="admin-tickets-list"></div>
+        </div>
+        <div class="admin-section" id="admin-promos">
+            <div class="promo-create-form">
+    <h3 id="promo-create-title">🎁 СОЗДАТЬ ПРОМОКОД</h3>
+    <input type="text" id="new-promo-code" placeholder="КОД" style="text-transform:uppercase;">
+    <select id="new-promo-subtype" style="width:100%;padding:12px 15px;background:#0a0a0a;border:2px solid #333;border-radius:8px;color:white;font-size:1rem;margin-bottom:12px;">
+        <option value="">Выбери подписку</option>
+        <option value="basic-temp">🎬 BASIC ВРЕМЕННАЯ (на минуты)</option>
+        <option value="pissing">💧 ПИСАЮЩИЙ (постоянная)</option>
+        <option value="basic">🎬 BASIC (постоянная)</option>
+        <option value="lux">💎 LUX (постоянная)</option>
+        <option value="pro">👑 САМЫЙ КРУТОЙ (постоянная)</option>
+        <option value="rapport">🛡️ РАППОРТ (постоянная)</option>
+    </select>
+    <input type="number" id="new-promo-minutes" placeholder="Минуты (только для временной BASIC)" min="1" value="5">
+    <input type="number" id="new-promo-uses" placeholder="Сколько раз использовать" min="1" value="1">
+    <button class="action-btn gold" style="width:100%;padding:12px;" onclick="createPromo()">✅ СОЗДАТЬ ПРОМОКОД</button>
+</div>
+            <table class="admin-table">
+                <thead><tr><th>КОД</th><th>ПОДПИСКА</th><th>ИСПОЛЬЗОВАНО</th><th>СОЗДАН</th><th>ДЕЙСТВИЯ</th></tr></thead>
+                <tbody id="admin-promos-body"></tbody>
+            </table>
+        </div>
+        <div class="admin-section" id="admin-episodes">
+            <h3 style="font-family:'Bebas Neue';letter-spacing:3px;margin-bottom:20px;color:var(--red);">🔒 БЛОКИРОВКА СЕРИЙ</h3>
+            <p style="color:#888;margin-bottom:20px;">Заблокированные серии не показываются обычным пользователям. Админы и Раппорт видят всё.</p>
+            <div id="admin-episodes-list" class="ep-grid"></div>
+        </div>
+    </div>
+
+    <!-- ЛОГИН -->
+    <div class="login-screen" id="login-screen">
+        <div class="login-box">
+            <div id="login-form" class="login-form">
+                <div class="login-logo">THE <span>DED</span></div>
+                <div class="login-subtitle">ВОЙДИ, ЧТОБЫ СМОТРЕТЬ</div>
+                <div class="input-group"><label>EMAIL</label><input type="email" id="login-email" placeholder="Введи email"></div>
+                <div class="input-group"><label>ПАРОЛЬ</label><input type="password" id="login-password" placeholder="Введи пароль"></div>
+                <label class="remember-me"><input type="checkbox" id="remember-check" checked><span>Запомнить меня</span></label>
+                <button class="login-btn" onclick="tryLogin()">ВОЙТИ</button>
+                <div class="login-error" id="login-error">❌ Неверный email или пароль</div>
+                <div class="login-error" id="banned-error" style="color:var(--red);">🚫 Ваш аккаунт заблокирован</div>
+                <div class="register-link">Нет аккаунта? <a onclick="showRegister()">Зарегистрируйся</a></div>
+            </div>
+            <div id="register-form" class="register-box">
+                <div class="login-logo">THE <span>DED</span></div>
+                <div class="login-subtitle">СОЗДАЙ АККАУНТ</div>
+                <div class="input-group"><label>ИМЯ</label><input type="text" id="reg-name" placeholder="Как тебя зовут?"></div>
+                <div class="input-group"><label>EMAIL</label><input type="email" id="reg-email" placeholder="Введи email"></div>
+                <div class="input-group"><label>ПАРОЛЬ</label><input type="password" id="reg-password" placeholder="Придумай пароль"></div>
+                <button class="login-btn" onclick="tryRegister()" style="margin-top:15px;">СОЗДАТЬ АККАУНТ</button>
+                <div class="login-error" id="reg-error">❌ Ошибка</div>
+                <div class="register-link">Уже есть аккаунт? <a onclick="showLogin()">Войти</a></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- НАВИГАЦИЯ -->
+    <nav>
+        <div class="nav-left">
+            <div class="logo" onclick="showPage('home')">THE <span>DED</span></div>
+            <div class="nav-tabs">
+                <button class="nav-tab active" id="btn-home" onclick="showPage('home')">ГЛАВНАЯ</button>
+                <button class="nav-tab" id="btn-all" onclick="showPage('all')">СЕРИИ</button>
+                <button class="nav-tab" id="btn-profile" onclick="showPage('profile')">ПРОФИЛЬ</button>
+                <button class="nav-tab" id="btn-support" onclick="showPage('support')">📨 ПОДДЕРЖКА</button>
+                <button class="nav-tab" id="btn-messages" onclick="showPage('messages')">💬 СООБЩЕНИЯ <span class="badge-new" id="messages-badge" style="display:none;">0</span></button>
+                <button class="nav-tab" id="btn-admin" onclick="openAdmin()" style="display:none;background:#333;">🔧 АДМИН</button>
+            </div>
+        </div>
+        <div class="user-info">
+            <span class="sub-badge-nav" id="nav-sub-badge" style="display:none;">👑 PREMIUM</span>
+            <div class="wallet-badge" id="nav-wallet" onclick="showPage('profile')">0.00 ₽</div>
+            <div class="user-avatar" id="nav-avatar" onclick="showPage('profile')">👤</div>
+            <span class="user-name" id="user-name-display">Гость</span>
+            <button class="logout-btn" onclick="logout()">ВЫЙТИ</button>
+        </div>
+    </nav>
+
+    <!-- ГЛАВНАЯ -->
+    <div id="page-home" class="page active">
+        <div class="hero">
+            <img src="https://github.com/ivansabaev04-svg/theded-videos/releases/download/v1/icon.png" alt="THE DED" class="hero-logo">
+            <h1>THE <span>DED</span></h1>
+            <p>«Они не супергерои. Они даже не молодые.»</p>
+            <div class="welcome-msg">Добро пожаловать, <span id="welcome-name">Гость</span></div>
+        </div>
+        <h2 class="section-header">СЕРИАЛЫ</h2>
+        <div class="folders-grid" id="folders-grid"></div>
+    </div>
+
+    <!-- СЕРИИ -->
+    <div id="page-all" class="page">
+        <h2 class="section-header" id="serial-page-title">СЕРИИ</h2>
+        <button class="btn btn-outline" id="back-btn" onclick="showPage('home')" style="margin-bottom:20px;display:none;">← НАЗАД</button>
+        <div class="ep-grid" id="episodes-list"></div>
+    </div>
+
+    <!-- ПЛЕЕР -->
+    <div id="page-player" class="page">
+        <div class="player-box">
+            <button class="btn btn-outline" onclick="showPage('all')" style="margin-bottom:20px;">← НАЗАД К СЕРИЯМ</button>
+            <div class="video-container">
+                <video id="v-player" controls></video>
+            </div>
+            <div class="controls">
+                <button class="btn" id="prev" onclick="changeEp(-1)">← ПРЕД</button>
+                <h2 id="ep-title" style="font-family:'Bebas Neue';letter-spacing:3px;">СЕРИЯ 1</h2>
+                <button class="btn" id="next" onclick="changeEp(1)">СЛЕД →</button>
+            </div>
+            <div class="video-actions">
+                <button class="video-action-btn" id="like-btn" onclick="toggleLike()">❤️ <span id="like-count">0</span></button>
+                <span class="video-action-btn">👁 <span id="view-count">0</span> просмотров</span>
+                <span class="video-action-btn">💬 <span id="comment-count-display">0</span></span>
+                <a class="video-action-btn download" id="download-btn" download target="_blank">⬇ СКАЧАТЬ</a>
+            </div>
+
+            <div class="rating-section">
+                <div class="rating-header">
+                    <div class="rating-title">⭐ ОЦЕНИ СЕРИЮ</div>
+                    <div class="rating-stats">
+                        Средняя: <span class="avg" id="avg-rating">—</span>
+                        <span id="rating-count">(0 оценок)</span>
+                    </div>
+                </div>
+                <div class="stars-container" id="stars-container"></div>
+                <div class="stars-msg" id="stars-msg">Поставь оценку от 1 до 5 звёзд</div>
+            </div>
+        </div>
+
+        <div class="comments-section">
+            <div class="comments-title">💬 КОММЕНТАРИИ <span class="count" id="comments-count">(0)</span></div>
+            <div id="comment-banned-msg"></div>
+            <div class="comment-form" id="comment-form-container">
+                <div class="comment-form-avatar" id="comment-avatar">👤</div>
+                <div class="comment-form-input">
+                    <textarea id="comment-text" placeholder="Напиши комментарий..." rows="2"></textarea>
+                    <button class="comment-submit" onclick="postComment()">ОТПРАВИТЬ</button>
+                </div>
+            </div>
+            <div class="comments-list" id="comments-list"></div>
+        </div>
+    </div>
+    <!-- ПРОФИЛЬ -->
+    <div id="page-profile" class="page">
+        <div class="profile-card">
+            <div class="profile-avatar-big" id="profile-avatar" onclick="toggleAvatarPicker()">👤</div>
+            <label class="avatar-upload-label">📷 Загрузить фото<input type="file" accept="image/*" onchange="uploadAvatar(event)" style="display:none;"></label>
+            <div class="avatar-picker" id="avatar-picker"></div>
+            <div class="profile-name" id="profile-name">Гость</div>
+            <div class="profile-email" id="profile-email-display">email</div>
+            <div class="profile-bio" id="profile-bio">Нет описания</div>
+            <button class="edit-bio-btn" onclick="editBio()">✏️ Изменить описание</button>
+            <div class="profile-stats">
+    <div class="profile-stat" onclick="showFollowers(currentUser.email)">
+        <div class="profile-stat-number" id="my-followers-count">0</div>
+        <div class="profile-stat-label">ПОДПИСЧИКИ</div>
+    </div>
+    <div class="profile-stat" onclick="showFollowing(currentUser.email)">
+        <div class="profile-stat-number" id="my-following-count">0</div>
+        <div class="profile-stat-label">ПОДПИСКИ</div>
+    </div>
+</div>
+            <div class="sub-status inactive" id="sub-status">БЕЗ ПОДПИСКИ</div>
+
+            <div class="promo-section">
+                <div class="promo-title">🎁 ВВЕСТИ ПРОМОКОД</div>
+                <div class="promo-input-group">
+                    <input type="text" id="promo-input" placeholder="ВВЕДИ ПРОМОКОД">
+                    <button class="promo-btn" onclick="applyPromo()">АКТИВИРОВАТЬ</button>
+                </div>
+                <div class="promo-msg" id="promo-msg"></div>
+                <div class="promo-timer" id="promo-timer">
+                    🎉 ВРЕМЕННАЯ ПОДПИСКА АКТИВНА!
+                    <div class="promo-timer-time" id="promo-timer-time">00:00</div>
+                </div>
+            </div>
+
+            <div class="settings-section">
+                <div class="settings-title">🎨 ТЕМА ОФОРМЛЕНИЯ</div>
+                <div class="themes-grid" id="themes-grid"></div>
+            </div>
+
+            <div class="settings-section">
+                <div class="settings-title">🌈 ЦВЕТ НИКА</div>
+                <div class="nick-colors-section">
+                    <p style="color:#888;font-size:0.85rem;margin-bottom:10px;">Цвета открываются по уровням подписки</p>
+                    <div class="nick-colors-grid" id="nick-colors-grid"></div>
+                </div>
+            </div>
+
+            <div class="wallet-section">
+                <div class="wallet-title">💰 МОЙ КОШЕЛЁК</div>
+                <div class="wallet-currency-select" id="currency-select"></div>
+                <div class="wallet-balance" id="wallet-balance">0.00 ₽</div>
+                <button class="topup-btn" onclick="topupWallet()">💳 ПОПОЛНИТЬ ЧЕРЕЗ ЮMONEY</button>
+            </div>
+
+            <div class="settings-section" style="margin-top:30px;">
+                <div class="settings-title" style="color:var(--gold);">👑 ПОДПИСКИ</div>
+                <div id="sub-buy-area"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ПОДДЕРЖКА -->
+    <div id="page-support" class="page">
+        <div class="support-card">
+            <h2 class="support-title">📨 ПОДДЕРЖКА</h2>
+            <p class="support-subtitle">Опиши свою проблему и мы ответим как можно быстрее!</p>
+            <div class="support-form">
+                <div class="input-group">
+                    <label>ТЕМА</label>
+                    <select id="ticket-topic">
+                        <option value="Не работает видео">🎬 Не работает видео</option>
+                        <option value="Проблема с оплатой">💳 Проблема с оплатой</option>
+                        <option value="Проблема с аккаунтом">👤 Проблема с аккаунтом</option>
+                        <option value="Предложение">💡 Предложение</option>
+                        <option value="Жалоба">😠 Жалоба</option>
+                        <option value="Другое">❓ Другое</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label>СООБЩЕНИЕ</label>
+                    <textarea id="ticket-message" rows="6" placeholder="Опиши проблему подробно..."></textarea>
+                </div>
+                <button class="support-submit" onclick="submitTicket()">📤 ОТПРАВИТЬ ОБРАЩЕНИЕ</button>
+            </div>
+            <div class="my-tickets">
+                <h3>📋 МОИ ОБРАЩЕНИЯ</h3>
+                <div id="my-tickets-list"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- СООБЩЕНИЯ -->
+    <div id="page-messages" class="page">
+        <div class="messages-container">
+            <div class="messages-sidebar">
+                <h3 class="messages-title">💬 ЧАТЫ</h3>
+                <button class="new-chat-btn" onclick="newChat()">➕ НОВЫЙ ЧАТ</button>
+<button class="create-group-btn" onclick="openGroupCreate()">👥 СОЗДАТЬ ГРУППУ</button>
+                <div class="chats-list" id="chats-list"></div>
+            </div>
+            <div class="messages-main" id="messages-main">
+                <div class="no-chat-selected">Выбери чат или создай новый</div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+    <!-- ПОИСК ПОЛЬЗОВАТЕЛЕЙ -->
+<div class="user-search-modal" id="user-search-modal">
+    <div class="user-search-box">
+        <div class="user-search-title">🔍 ПОИСК ПОЛЬЗОВАТЕЛЯ</div>
+        <input type="text" class="user-search-input" id="user-search-input" placeholder="Введи имя пользователя..." oninput="searchUsers()">
+        <div class="user-search-results" id="user-search-results"></div>
+        <button class="search-close" onclick="closeUserSearch()">ЗАКРЫТЬ</button>
+    </div>
+</div>
+
+<!-- ПРОФИЛЬ ДРУГОГО ПОЛЬЗОВАТЕЛЯ -->
+<div class="user-profile-modal" id="user-profile-modal">
+    <div class="user-profile-content" id="user-profile-content">
+        <button class="user-profile-close" onclick="closeUserProfile()">✕</button>
+        <div id="user-profile-body"></div>
+    </div>
+</div>
+
+<!-- СОЗДАНИЕ ГРУППЫ -->
+<div class="group-members-modal" id="group-create-modal">
+    <div class="group-members-content">
+        <div class="user-search-title">👥 СОЗДАТЬ ГРУППУ</div>
+        <input type="text" class="user-search-input" id="group-name-input" placeholder="Название группы..." maxlength="30">
+        <p style="color:#888;font-size:0.85rem;margin-top:10px;">Выбери участников (макс 10):</p>
+        <div class="selected-members" id="group-selected-members"></div>
+        <input type="text" class="user-search-input" id="group-search-input" placeholder="Найти пользователя по имени..." oninput="searchGroupMembers()">
+        <div class="user-search-results" id="group-search-results"></div>
+        <button class="boost-btn" style="width:100%;background:var(--green);color:white;margin-top:10px;" onclick="createGroup()">✅ СОЗДАТЬ ГРУППУ</button>
+        <button class="search-close" onclick="closeGroupCreate()">ОТМЕНА</button>
+    </div>
+</div>
+
+<!-- УЧАСТНИКИ ГРУППЫ -->
+<div class="group-members-modal" id="group-members-modal">
+    <div class="group-members-content">
+        <div class="user-search-title">👥 УЧАСТНИКИ ГРУППЫ</div>
+        <div id="group-members-list" style="margin:15px 0;"></div>
+        <button class="search-close" onclick="closeGroupMembers()">ЗАКРЫТЬ</button>
+    </div>
+</div>
+</body>
+</html>
