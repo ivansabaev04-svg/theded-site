@@ -1458,3 +1458,431 @@ body.theme-light .settings-section { background:#f0f0f0; border-color:#ddd; }
         font-size: 1.5rem;
     }
 }
+/* ===== КНОПКА ПОПОЛНЕНИЯ ОТКЛЮЧЕНА ===== */
+.topup-btn.disabled {
+    background: #444 !important;
+    cursor: not-allowed !important;
+    opacity: 0.6;
+}
+.topup-btn.disabled:hover {
+    filter: none !important;
+    background: #444 !important;
+}
+.disabled-msg {
+    color: #FF9800;
+    font-size: 0.85rem;
+    text-align: center;
+    margin-top: 10px;
+    padding: 10px;
+    background: rgba(255,152,0,0.1);
+    border: 1px solid #FF9800;
+    border-radius: 8px;
+}
+
+/* ===== ФОТО В ЧАТЕ ===== */
+.attach-btn {
+    background: var(--card-bg);
+    border: 1px solid #333;
+    color: white;
+    padding: 0 15px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 1.3rem;
+    transition: 0.3s;
+}
+.attach-btn:hover {
+    border-color: var(--red);
+    background: #1a1a1a;
+}
+
+.msg-photo {
+    max-width: 250px;
+    max-height: 300px;
+    border-radius: 10px;
+    margin-top: 5px;
+    cursor: pointer;
+    display: block;
+}
+
+.msg-photo-pending {
+    max-width: 250px;
+    padding: 20px;
+    background: #333;
+    border-radius: 10px;
+    text-align: center;
+    color: #FF9800;
+    font-size: 0.9rem;
+    border: 2px dashed #FF9800;
+}
+
+/* ===== ГОЛОСОВЫЕ ===== */
+.voice-btn {
+    background: var(--card-bg);
+    border: 1px solid #333;
+    color: white;
+    padding: 0 15px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 1.3rem;
+    transition: 0.3s;
+}
+.voice-btn:hover {
+    border-color: var(--red);
+}
+.voice-btn.recording {
+    background: var(--red);
+    animation: pulse-record 1s infinite;
+}
+@keyframes pulse-record {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+.msg-voice {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px;
+    background: rgba(0,0,0,0.3);
+    border-radius: 20px;
+    max-width: 250px;
+}
+.msg-voice-play {
+    width: 35px;
+    height: 35px;
+    border-radius: 50%;
+    background: var(--red);
+    border: none;
+    color: white;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+}
+.msg-voice-info {
+    flex: 1;
+    color: white;
+    font-size: 0.85rem;
+}
+
+/* ===== РЕАКЦИИ ===== */
+.msg-bubble {
+    position: relative;
+}
+.msg-reactions {
+    display: flex;
+    gap: 5px;
+    margin-top: 5px;
+    flex-wrap: wrap;
+}
+.reaction-badge {
+    background: rgba(0,0,0,0.4);
+    padding: 3px 8px;
+    border-radius: 12px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    transition: 0.2s;
+    user-select: none;
+}
+.reaction-badge:hover {
+    background: rgba(229,9,20,0.3);
+    transform: scale(1.1);
+}
+.reaction-badge.mine {
+    background: var(--red);
+    color: white;
+}
+
+.reaction-picker {
+    display: none;
+    position: absolute;
+    top: -40px;
+    left: 0;
+    background: var(--dark-gray);
+    border: 1px solid #333;
+    border-radius: 25px;
+    padding: 5px 10px;
+    gap: 5px;
+    z-index: 100;
+}
+.msg-bubble.theirs .reaction-picker {
+    left: 0;
+}
+.msg-bubble.mine .reaction-picker {
+    right: 0;
+    left: auto;
+}
+.reaction-picker.show {
+    display: flex;
+}
+.reaction-emoji-btn {
+    font-size: 1.3rem;
+    cursor: pointer;
+    background: none;
+    border: none;
+    padding: 3px;
+    transition: 0.2s;
+}
+.reaction-emoji-btn:hover {
+    transform: scale(1.3);
+}
+
+.msg-actions-btn {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    width: 25px;
+    height: 25px;
+    border-radius: 50%;
+    background: var(--card-bg);
+    border: 1px solid #333;
+    color: white;
+    cursor: pointer;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.85rem;
+}
+.msg-bubble:hover .msg-actions-btn {
+    display: flex;
+}
+.msg-bubble.mine .msg-actions-btn {
+    right: auto;
+    left: -8px;
+}
+
+/* ===== ОТВЕТ НА СООБЩЕНИЕ ===== */
+.msg-reply-preview {
+    background: rgba(0,0,0,0.3);
+    border-left: 3px solid var(--red);
+    padding: 5px 10px;
+    border-radius: 6px;
+    margin-bottom: 8px;
+    font-size: 0.85rem;
+    color: #ccc;
+    cursor: pointer;
+}
+.msg-reply-preview-author {
+    font-weight: 700;
+    color: var(--red);
+    font-size: 0.75rem;
+}
+.msg-reply-preview-text {
+    opacity: 0.8;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 200px;
+}
+
+.reply-indicator {
+    background: var(--dark-gray);
+    padding: 10px 15px;
+    display: none;
+    align-items: center;
+    gap: 10px;
+    border-top: 1px solid #333;
+}
+.reply-indicator.show {
+    display: flex;
+}
+.reply-indicator-info {
+    flex: 1;
+    overflow: hidden;
+}
+.reply-indicator-author {
+    color: var(--red);
+    font-size: 0.75rem;
+    font-weight: 700;
+}
+.reply-indicator-text {
+    color: #ccc;
+    font-size: 0.85rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.reply-cancel {
+    background: none;
+    border: none;
+    color: #888;
+    cursor: pointer;
+    font-size: 1.2rem;
+}
+
+/* ===== СТИКЕРЫ ===== */
+.sticker-btn {
+    background: var(--card-bg);
+    border: 1px solid #333;
+    color: white;
+    padding: 0 15px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 1.3rem;
+    transition: 0.3s;
+}
+.sticker-btn:hover {
+    border-color: var(--gold);
+}
+
+.sticker-picker {
+    display: none;
+    background: #0a0a0a;
+    border-top: 1px solid #222;
+    max-height: 300px;
+    overflow-y: auto;
+    padding: 15px;
+}
+.sticker-picker.show {
+    display: block;
+}
+
+.sticker-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+    gap: 10px;
+}
+
+.sticker-item {
+    font-size: 3rem;
+    text-align: center;
+    padding: 10px;
+    background: var(--card-bg);
+    border-radius: 10px;
+    cursor: pointer;
+    transition: 0.2s;
+    aspect-ratio: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.sticker-item:hover {
+    background: var(--red);
+    transform: scale(1.1);
+}
+.sticker-item.locked {
+    opacity: 0.3;
+    cursor: not-allowed;
+    position: relative;
+}
+.sticker-item.locked::after {
+    content: '🔒';
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    font-size: 0.8rem;
+}
+
+.msg-sticker {
+    font-size: 4rem;
+    line-height: 1;
+    padding: 5px;
+}
+
+/* ===== УВЕДОМЛЕНИЯ ===== */
+.notification-badge {
+    display: inline-block;
+    background: var(--red);
+    color: white;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    margin-left: 5px;
+    min-width: 20px;
+    text-align: center;
+    animation: pulse-notif 2s infinite;
+}
+@keyframes pulse-notif {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+}
+
+/* ===== АДМИН — МОДЕРАЦИЯ ФОТО ===== */
+.moderation-item {
+    background: #111;
+    padding: 15px;
+    border-radius: 10px;
+    margin-bottom: 15px;
+    border-left: 4px solid #FF9800;
+}
+
+.moderation-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.moderation-user {
+    font-weight: 700;
+}
+
+.moderation-date {
+    color: #555;
+    font-size: 0.8rem;
+}
+
+.moderation-photo {
+    max-width: 300px;
+    max-height: 300px;
+    border-radius: 8px;
+    margin: 10px 0;
+    display: block;
+}
+
+.moderation-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+/* ===== ТЕМА СВЕТ/НОЧЬ ===== */
+.theme-auto-notice {
+    background: rgba(33, 150, 243, 0.1);
+    border: 1px solid var(--blue);
+    color: var(--blue);
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    margin-top: 10px;
+}
+
+/* Адаптив для чата */
+.chat-input-area {
+    flex-wrap: wrap;
+}
+@media (max-width: 768px) {
+    .chat-input {
+        min-width: 150px;
+    }
+    .sticker-item {
+        font-size: 2.5rem;
+    }
+}
+/* ===== ПЛЕЕР ГОЛОСОВЫХ ===== */
+audio {
+    outline: none;
+    border-radius: 20px;
+}
+audio::-webkit-media-controls-panel {
+    background-color: rgba(255,255,255,0.1);
+}
+audio::-webkit-media-controls-play-button {
+    background-color: var(--red);
+    border-radius: 50%;
+}
+
+.msg-voice-container {
+    padding: 5px;
+}
+
+.msg-bubble.mine audio {
+    filter: hue-rotate(340deg);
+}
