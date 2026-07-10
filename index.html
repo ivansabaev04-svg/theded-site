@@ -79,6 +79,7 @@
             <button class="admin-tab" onclick="switchAdminTab('tickets')">📨 ОБРАЩЕНИЯ <span class="badge-new" id="tickets-badge" style="display:none;">0</span></button>
             <button class="admin-tab" onclick="switchAdminTab('promos')">🎁 ПРОМОКОДЫ</button>
             <button class="admin-tab" onclick="switchAdminTab('episodes')">🔒 СЕРИИ</button>
+            <button class="admin-tab" onclick="switchAdminTab('moderation')">📸 МОДЕРАЦИЯ <span class="notification-badge" id="moderation-badge" style="display:none;">0</span></button>
         </div>
 
         <div class="admin-edit-form" id="admin-edit-form">
@@ -165,6 +166,11 @@
                 <tbody id="admin-promos-body"></tbody>
             </table>
         </div>
+        <div class="admin-section" id="admin-moderation">
+    <h3 style="font-family:'Bebas Neue';letter-spacing:3px;margin-bottom:20px;color:#FF9800;">📸 МОДЕРАЦИЯ КОНТЕНТА</h3>
+    <p style="color:#888;margin-bottom:20px;">Одобри или отклони фото и голосовые сообщения перед публикацией в чате</p>
+    <div id="moderation-list"></div>
+</div>
         <div class="admin-section" id="admin-episodes">
             <h3 style="font-family:'Bebas Neue';letter-spacing:3px;margin-bottom:20px;color:var(--red);">🔒 БЛОКИРОВКА СЕРИЙ</h3>
             <p style="color:#888;margin-bottom:20px;">Заблокированные серии не показываются обычным пользователям. Админы и Раппорт видят всё.</p>
@@ -337,7 +343,10 @@
                 <div class="wallet-title">💰 МОЙ КОШЕЛЁК</div>
                 <div class="wallet-currency-select" id="currency-select"></div>
                 <div class="wallet-balance" id="wallet-balance">0.00 ₽</div>
-                <button class="topup-btn" onclick="topupWallet()">💳 ПОПОЛНИТЬ ЧЕРЕЗ ЮMONEY</button>
+                <button class="topup-btn disabled" onclick="showTopupDisabled()">💳 ПОПОЛНЕНИЕ ВРЕМЕННО НЕДОСТУПНО</button>
+<div class="disabled-msg" id="topup-disabled-msg" style="display:none;">
+    ⚠️ Пополнение временно отключено. Мы работаем над этим!
+</div>
             </div>
 
             <div class="settings-section" style="margin-top:30px;">
