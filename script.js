@@ -38,6 +38,7 @@ const CURRENCIES = [
 
 const THEMES = [
     { id:'default', name:'КРАСНАЯ', color:'#e50914', bg:'#0a0a0a' },
+    { id:'auto', name:'🌙☀️ АВТО', color:'#2196F3', bg:'#1a1a2e' },
     { id:'blue', name:'СИНЯЯ', color:'#2196F3', bg:'#0a1929' },
     { id:'green', name:'ЗЕЛЁНАЯ', color:'#4CAF50', bg:'#0a1a0a' },
     { id:'purple', name:'ФИОЛЕТ', color:'#9C27B0', bg:'#1a0a1a' },
@@ -390,10 +391,30 @@ function isEpisodeBlocked(epNum){return cachedBlockedEps.includes(epNum);}
 async function toggleEpisodeBlock(epNum){let blocked=[...cachedBlockedEps];if(blocked.includes(epNum)){blocked=blocked.filter(e=>e!==epNum);}else{blocked.push(epNum);}await fbWrite('blockedEpisodes',blocked);renderAdminEpisodes();}
 
 // ============ ТЕМЫ ============
-function applyTheme(themeId){document.body.className='';if(themeId&&themeId!=='default')document.body.classList.add('theme-'+themeId);if(currentUser){currentUser.theme=themeId;saveCurrentUserToFirebase();}renderThemes();}
+function applyTheme(themeId){
+    document.body.className='';
+    if(themeId === 'auto'){
+        // Авто режим — проверяем время
+        checkAutoTheme();
+    } else if(themeId && themeId !== 'default'){
+        document.body.classList.add('theme-' + themeId);
+    }
+    if(currentUser){
+        currentUser.theme = themeId;
+        saveCurrentUserToFirebase();
+    }
+    renderThemes();
+}
 function renderThemes(){const grid=document.getElementById('themes-grid');if(!grid)return;grid.innerHTML='';const active=currentUser?.theme||'default';THEMES.forEach(t=>{const div=document.createElement('div');div.className='theme-option'+(active===t.id?' selected':'');div.innerHTML=`<div class="theme-preview" style="background:linear-gradient(135deg,${t.color},${t.bg});"></div><div class="theme-name">${t.name}</div>`;div.onclick=()=>applyTheme(t.id);grid.appendChild(div);});}
-function loadUserTheme(){if(currentUser&&currentUser.theme)applyTheme(currentUser.theme);}
-
+function loadUserTheme(){
+    if(currentUser && currentUser.theme){
+        applyTheme(currentUser.theme);
+        // Если авто-тема — запускаем таймер проверки
+        if(currentUser.theme === 'auto'){
+            checkAutoTheme();
+        }
+    }
+}
 // ============ ПРОМОКОДЫ ============
 let cachedPromos=[];
 function setupPromosListener(){if(firebaseReady){fbListen('promos',(data)=>{cachedPromos=data?Object.entries(data).map(([id,p])=>({...p,id})):[];if(typeof renderAdminPromos==='function' && document.getElementById('admin-overlay').classList.contains('show'))renderAdminPromos();});fbReadOnce('promos').then(d=>{if(!d){fbPushPromo({code:'КРУТОЙВАНЯ',subType:'basic',minutes:5,maxUses:1,uses:0,usedBy:[],createdAt:new Date().toLocaleString('ru-RU'),isTemp:true});}});}else{setTimeout(setupPromosListener,500);}}
@@ -468,8 +489,17 @@ function updateSubDisplay(){if(!currentUser)return;const el=document.getElementB
 function initCurrencyButtons(){const c=document.getElementById('currency-select');c.innerHTML='';CURRENCIES.forEach(cur=>{const b=document.createElement('button');b.className='currency-btn'+(currentUser.currency===cur.code?' active':'');b.textContent=`${cur.symbol} ${cur.name}`;b.onclick=async ()=>{currentUser.currency=cur.code;await saveCurrentUserToFirebase();updateWalletDisplay();};c.appendChild(b);});}
 function getCurrencySymbol(){return(CURRENCIES.find(c=>c.code===currentUser.currency)||{}).symbol||'₽';}
 function updateWalletDisplay(){if(!currentUser)return;const sym=getCurrencySymbol();const bal=(currentUser.wallet[currentUser.currency]||0).toFixed(2);document.getElementById('wallet-balance').textContent=`${bal} ${sym}`;document.getElementById('nav-wallet').textContent=`${bal} ${sym}`;initCurrencyButtons();updateSubDisplay();}
-function topupWallet(){const label=encodeURIComponent('THEDED_'+currentUser.email);const url=`https://yoomoney.ru/quickpay/confirm.xml?receiver=${YOOMONEY_WALLET}&quickpay-form=donate&targets=${encodeURIComponent('THE DED+')}&paymentType=AC&sum=50&label=${label}`;window.open(url,'_blank');}
-
+function topupWallet(){
+    showTopupDisabled();
+}
+function showTopupDisabled(){
+    const msg=document.getElementById('topup-disabled-msg');
+    if(msg){
+        msg.style.display='block';
+        setTimeout(()=>{msg.style.display='none';},5000);
+    }
+    alert('⚠️ Пополнение временно недоступно. Мы работаем над этим!');
+}
 // ============ СЕРИАЛЫ С ОБЛОЖКОЙ ============
 function renderFolders(){
     const grid=document.getElementById('folders-grid');
@@ -555,6 +585,7 @@ function openChat(chatId,otherUser){
     currentChatId=chatId;
     currentChatUser=otherUser;
     currentChatType='private';
+    replyingToMessage=null;
     const main=document.getElementById('messages-main');
     const av=otherUser.avatarImg?`<img src="${otherUser.avatarImg}">`:(otherUser.avatar||'👤');
     main.innerHTML=`
@@ -564,8 +595,19 @@ function openChat(chatId,otherUser){
         </div>
         <div class="chat-messages" id="chat-messages-area"></div>
         <div class="emoji-picker" id="emoji-picker"></div>
+        <div class="sticker-picker" id="sticker-picker"></div>
+        <div class="reply-indicator" id="reply-indicator">
+            <div class="reply-indicator-info">
+                <div class="reply-indicator-author" id="reply-indicator-author"></div>
+                <div class="reply-indicator-text" id="reply-indicator-text"></div>
+            </div>
+            <button class="reply-cancel" onclick="cancelReply()">✕</button>
+        </div>
         <div class="chat-input-area">
             <button class="emoji-btn" onclick="toggleEmojiPicker()">😀</button>
+            <button class="sticker-btn" onclick="toggleStickerPicker()">🎨</button>
+            <button class="attach-btn" onclick="attachPhoto('${otherUser.email}','private')">📎</button>
+            <button class="voice-btn" id="voice-btn" onclick="toggleVoiceRecord('${otherUser.email}','private')">🎤</button>
             <textarea class="chat-input" id="chat-input-text" placeholder="Напиши сообщение..." rows="1"></textarea>
             <button class="chat-send" onclick="sendMessage('${otherUser.email}')">📤</button>
         </div>
@@ -580,6 +622,7 @@ function openGroupChat(groupId,group){
     currentChatId='group_'+groupId;
     currentChatType='group';
     currentChatUser=null;
+    replyingToMessage=null;
     const main=document.getElementById('messages-main');
     main.innerHTML=`
         <div class="chat-header">
@@ -589,8 +632,19 @@ function openGroupChat(groupId,group){
         </div>
         <div class="chat-messages" id="chat-messages-area"></div>
         <div class="emoji-picker" id="emoji-picker"></div>
+        <div class="sticker-picker" id="sticker-picker"></div>
+        <div class="reply-indicator" id="reply-indicator">
+            <div class="reply-indicator-info">
+                <div class="reply-indicator-author" id="reply-indicator-author"></div>
+                <div class="reply-indicator-text" id="reply-indicator-text"></div>
+            </div>
+            <button class="reply-cancel" onclick="cancelReply()">✕</button>
+        </div>
         <div class="chat-input-area">
             <button class="emoji-btn" onclick="toggleEmojiPicker()">😀</button>
+            <button class="sticker-btn" onclick="toggleStickerPicker()">🎨</button>
+            <button class="attach-btn" onclick="attachPhoto('${groupId}','group')">📎</button>
+            <button class="voice-btn" id="voice-btn" onclick="toggleVoiceRecord('${groupId}','group')">🎤</button>
             <textarea class="chat-input" id="chat-input-text" placeholder="Напиши в группу..." rows="1"></textarea>
             <button class="chat-send" onclick="sendGroupMessage('${groupId}')">📤</button>
         </div>
@@ -632,21 +686,105 @@ function renderChat(){
     const area=document.getElementById('chat-messages-area');
     if(!area)return;
     const messages=allMessages[currentChatId]||{};
-    const arr=Object.values(messages).sort((a,b)=>(a.timestamp||0)-(b.timestamp||0));
+    const arr=Object.entries(messages).map(([id,m])=>({...m,id})).sort((a,b)=>(a.timestamp||0)-(b.timestamp||0));
     const wasScrolledToBottom=area.scrollTop+area.clientHeight>=area.scrollHeight-50;
     area.innerHTML='';
+
     arr.forEach(m=>{
         const div=document.createElement('div');
         const isMine=m.from===currentUser.email;
         div.className='msg-bubble '+(isMine?'mine':'theirs');
+        div.id='msg-' + m.id;
+
+        // Автор для групп
         let authorBlock='';
         if(currentChatType==='group' && !isMine){
             authorBlock=`<div class="chat-msg-author" style="cursor:pointer;color:var(--red);" onclick="openUserProfile('${m.from}')">${m.authorName||'?'}</div>`;
         }
-        div.innerHTML=`${authorBlock}<div class="msg-text">${m.text.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div><div class="msg-time">${m.date}</div>`;
+
+        // Ответ на сообщение
+        let replyBlock='';
+        if(m.replyTo){
+            replyBlock=`
+                <div class="msg-reply-preview" onclick="scrollToMessage('${m.replyTo.id}')">
+                    <div class="msg-reply-preview-author">↩️ ${m.replyTo.author}</div>
+                    <div class="msg-reply-preview-text">${(m.replyTo.text||'').replace(/</g,'&lt;').substring(0,50)}</div>
+                </div>
+            `;
+        }
+
+        // Контент сообщения
+        let contentBlock='';
+        const msgType = m.type || 'text';
+
+        if(msgType === 'photo' && m.photo){
+            contentBlock = `<img src="${m.photo}" class="msg-photo" onclick="window.open('${m.photo}','_blank')" alt="Фото">`;
+               } else if(msgType === 'voice' && m.voice){
+            contentBlock = `
+                <div class="msg-voice-container" style="min-width:200px;">
+                    <audio controls style="width:100%;max-width:250px;height:35px;" src="${m.voice}"></audio>
+                </div>
+            `;
+        } else if(msgType === 'sticker' && m.sticker){
+            contentBlock = `<div class="msg-sticker">${m.sticker}</div>`;
+        } else {
+            // Обычный текст
+            contentBlock = `<div class="msg-text">${(m.text||'').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>`;
+        }
+
+        // Реакции
+        let reactionsBlock='';
+        if(m.reactions && Object.keys(m.reactions).length > 0){
+            reactionsBlock = '<div class="msg-reactions">';
+            Object.entries(m.reactions).forEach(([emoji, users])=>{
+                const count = Object.keys(users).length;
+                if(count === 0) return;
+                const isMineReaction = currentUser && users[emailToKey(currentUser.email)];
+                reactionsBlock += `<div class="reaction-badge ${isMineReaction?'mine':''}" onclick="addReaction('${m.id}','${emoji}','${currentChatId}')">${emoji} ${count}</div>`;
+            });
+            reactionsBlock += '</div>';
+        }
+
+        // Кнопка меню (реакции + ответ)
+        const actionsBtn = `
+            <button class="msg-actions-btn" onclick="toggleReactionPicker('${m.id}')">😊</button>
+            <div class="reaction-picker" id="picker-${m.id}">
+                <button class="reaction-emoji-btn" onclick="addReaction('${m.id}','❤️','${currentChatId}')">❤️</button>
+                <button class="reaction-emoji-btn" onclick="addReaction('${m.id}','😂','${currentChatId}')">😂</button>
+                <button class="reaction-emoji-btn" onclick="addReaction('${m.id}','👍','${currentChatId}')">👍</button>
+                <button class="reaction-emoji-btn" onclick="addReaction('${m.id}','🔥','${currentChatId}')">🔥</button>
+                <button class="reaction-emoji-btn" onclick="addReaction('${m.id}','😢','${currentChatId}')">😢</button>
+                <button class="reaction-emoji-btn" onclick="addReaction('${m.id}','💯','${currentChatId}')">💯</button>
+                <button class="reaction-emoji-btn" onclick="replyToMessage('${m.id}','${currentChatId}')">↩️</button>
+            </div>
+        `;
+
+        div.innerHTML = `
+            ${authorBlock}
+            ${replyBlock}
+            ${contentBlock}
+            <div class="msg-time">${m.date}</div>
+            ${reactionsBlock}
+            ${actionsBtn}
+        `;
+
         area.appendChild(div);
     });
-    if(wasScrolledToBottom){area.scrollTop=area.scrollHeight;}
+
+    if(wasScrolledToBottom){
+        area.scrollTop=area.scrollHeight;
+    }
+}
+
+function scrollToMessage(msgId){
+    const el = document.getElementById('msg-' + msgId);
+    if(el){
+        el.scrollIntoView({behavior:'smooth', block:'center'});
+        el.style.background = 'rgba(229,9,20,0.3)';
+        setTimeout(() => {
+            el.style.background = '';
+        }, 2000);
+    }
 }
 
 async function sendMessage(toEmail){
@@ -661,12 +799,26 @@ async function sendMessage(toEmail){
         }
     }
     const chatId=getChatId(currentUser.email,toEmail);
-    const msg={from:currentUser.email,to:toEmail,text,date:new Date().toLocaleString('ru-RU'),timestamp:Date.now(),read:false};
+    const msg={
+        from:currentUser.email,
+        to:toEmail,
+        text,
+        date:new Date().toLocaleString('ru-RU'),
+        timestamp:Date.now(),
+        read:false,
+        type:'text',
+        reactions:{},
+        replyTo:replyingToMessage||null
+    };
     const newRef=window.fbPush(window.fbRef(window.fbDb,`messages/${chatId}`));
     await window.fbSet(newRef,msg);
     input.value='';
+    replyingToMessage=null;
+    updateReplyIndicator();
     const picker=document.getElementById('emoji-picker');
     if(picker)picker.classList.remove('show');
+    const stickerPicker=document.getElementById('sticker-picker');
+    if(stickerPicker)stickerPicker.classList.remove('show');
     setTimeout(()=>{const area=document.getElementById('chat-messages-area');if(area)area.scrollTop=area.scrollHeight;},100);
 }
 
@@ -682,12 +834,26 @@ async function sendGroupMessage(groupId){
         }
     }
     const chatId='group_'+groupId;
-    const msg={from:currentUser.email,authorName:currentUser.name,text,date:new Date().toLocaleString('ru-RU'),timestamp:Date.now(),readBy:{[emailToKey(currentUser.email)]:true}};
+    const msg={
+        from:currentUser.email,
+        authorName:currentUser.name,
+        text,
+        date:new Date().toLocaleString('ru-RU'),
+        timestamp:Date.now(),
+        readBy:{[emailToKey(currentUser.email)]:true},
+        type:'text',
+        reactions:{},
+        replyTo:replyingToMessage||null
+    };
     const newRef=window.fbPush(window.fbRef(window.fbDb,`messages/${chatId}`));
     await window.fbSet(newRef,msg);
     input.value='';
+    replyingToMessage=null;
+    updateReplyIndicator();
     const picker=document.getElementById('emoji-picker');
     if(picker)picker.classList.remove('show');
+    const stickerPicker=document.getElementById('sticker-picker');
+    if(stickerPicker)stickerPicker.classList.remove('show');
     setTimeout(()=>{const area=document.getElementById('chat-messages-area');if(area)area.scrollTop=area.scrollHeight;},100);
 }
 
@@ -929,3 +1095,529 @@ function fillBoostFollowersSelect(){
         s.appendChild(opt);
     });
 }
+// ============ НОВЫЕ ПЕРЕМЕННЫЕ ============
+let replyingToMessage = null;
+let mediaRecorder = null;
+let audioChunks = [];
+let isRecording = false;
+let pendingModeration = {};
+
+// ============ СЛУШАТЕЛЬ МОДЕРАЦИИ ============
+function setupModerationListener(){
+    if(firebaseReady){
+        fbListen('moderation',(data)=>{
+            pendingModeration = data || {};
+            if(typeof updateModerationBadge==='function')updateModerationBadge();
+            if(typeof renderModerationList==='function' && document.getElementById('admin-overlay').classList.contains('show'))renderModerationList();
+        });
+    }else{
+        setTimeout(setupModerationListener,500);
+    }
+}
+setupModerationListener();
+
+// ============ ФОТО В ЧАТЕ ============
+function attachPhoto(target, chatType){
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.onchange = (e) => {
+        const file = e.target.files[0];
+        if(!file) return;
+        if(file.size > 3000000){
+            alert('Максимум 3 МБ!');
+            return;
+        }
+        const reader = new FileReader();
+        reader.onload = function(ev){
+            const img = new Image();
+            img.onload = async function(){
+                // Сжимаем фото
+                const canvas = document.createElement('canvas');
+                const maxSize = 600;
+                let w = img.width, h = img.height;
+                if(w > h){
+                    if(w > maxSize){ h = h * (maxSize/w); w = maxSize; }
+                } else {
+                    if(h > maxSize){ w = w * (maxSize/h); h = maxSize; }
+                }
+                canvas.width = w;
+                canvas.height = h;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, w, h);
+                const dataUrl = canvas.toDataURL('image/jpeg', 0.75);
+
+                // Отправляем на модерацию
+                const modItem = {
+                    from: currentUser.email,
+                    fromName: currentUser.name,
+                    target: target,
+                    chatType: chatType,
+                    type: 'photo',
+                    content: dataUrl,
+                    date: new Date().toLocaleString('ru-RU'),
+                    timestamp: Date.now(),
+                    status: 'pending'
+                };
+                const newRef = window.fbPush(window.fbRef(window.fbDb, 'moderation'));
+                await window.fbSet(newRef, modItem);
+                alert('✅ Фото отправлено на модерацию! Оно появится в чате после одобрения администратором.');
+            };
+            img.src = ev.target.result;
+        };
+        reader.readAsDataURL(file);
+    };
+    input.click();
+}
+
+// ============ ГОЛОСОВЫЕ ============
+async function toggleVoiceRecord(target, chatType){
+    const btn = document.getElementById('voice-btn');
+    if(!btn) return;
+
+    if(!isRecording){
+        // Проверка поддержки браузером
+        if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
+            alert('❌ Твой браузер не поддерживает запись голосовых. Попробуй Chrome или Edge.');
+            return;
+        }
+
+        // Проверка HTTPS
+        if(location.protocol !== 'https:' && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1' && !location.protocol.startsWith('file')){
+            alert('❌ Голосовые работают только на HTTPS сайтах!');
+            return;
+        }
+
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+            // Определяем поддерживаемый формат
+            let mimeType = 'audio/webm';
+            if(!MediaRecorder.isTypeSupported(mimeType)){
+                mimeType = 'audio/mp4';
+                if(!MediaRecorder.isTypeSupported(mimeType)){
+                    mimeType = '';
+                }
+            }
+
+            mediaRecorder = mimeType ? new MediaRecorder(stream, {mimeType}) : new MediaRecorder(stream);
+            audioChunks = [];
+
+            mediaRecorder.ondataavailable = (e) => {
+                if(e.data && e.data.size > 0){
+                    audioChunks.push(e.data);
+                }
+            };
+
+            mediaRecorder.onstop = async () => {
+                stream.getTracks().forEach(t => t.stop());
+
+                if(audioChunks.length === 0){
+                    alert('❌ Ничего не записалось!');
+                    return;
+                }
+
+                const blob = new Blob(audioChunks, { type: mimeType || 'audio/webm' });
+
+                if(blob.size > 800000){
+                    alert('❌ Голосовое слишком длинное! Максимум 30 секунд.');
+                    return;
+                }
+
+                if(blob.size < 1000){
+                    alert('❌ Слишком короткая запись!');
+                    return;
+                }
+
+                const reader = new FileReader();
+                reader.onload = async function(ev){
+                    const dataUrl = ev.target.result;
+                    const modItem = {
+                        from: currentUser.email,
+                        fromName: currentUser.name,
+                        target: target,
+                        chatType: chatType,
+                        type: 'voice',
+                        content: dataUrl,
+                        date: new Date().toLocaleString('ru-RU'),
+                        timestamp: Date.now(),
+                        status: 'pending'
+                    };
+                    const newRef = window.fbPush(window.fbRef(window.fbDb, 'moderation'));
+                    await window.fbSet(newRef, modItem);
+                    alert('✅ Голосовое отправлено на модерацию!');
+                };
+                reader.onerror = () => {
+                    alert('❌ Ошибка при обработке записи');
+                };
+                reader.readAsDataURL(blob);
+            };
+
+            mediaRecorder.onerror = (e) => {
+                console.error('Ошибка записи:', e);
+                alert('❌ Ошибка записи! Попробуй ещё раз.');
+                isRecording = false;
+                btn.classList.remove('recording');
+                btn.textContent = '🎤';
+            };
+
+            mediaRecorder.start();
+            isRecording = true;
+            btn.classList.add('recording');
+            btn.textContent = '⏹️';
+
+            // Автостоп через 30 секунд
+            setTimeout(() => {
+                if(isRecording && mediaRecorder && mediaRecorder.state === 'recording'){
+                    mediaRecorder.stop();
+                    isRecording = false;
+                    btn.classList.remove('recording');
+                    btn.textContent = '🎤';
+                }
+            }, 30000);
+
+        } catch(err) {
+            console.error('Ошибка микрофона:', err);
+            if(err.name === 'NotAllowedError'){
+                alert('❌ Ты запретил доступ к микрофону!\n\nЧтобы разрешить:\n1. Нажми на замочек 🔒 слева от адреса сайта\n2. Разреши микрофон\n3. Обнови страницу');
+            } else if(err.name === 'NotFoundError'){
+                alert('❌ Микрофон не найден!');
+            } else {
+                alert('❌ Ошибка: ' + err.message);
+            }
+        }
+    } else {
+        // Останавливаем запись
+        if(mediaRecorder && mediaRecorder.state === 'recording'){
+            mediaRecorder.stop();
+        }
+        isRecording = false;
+        btn.classList.remove('recording');
+        btn.textContent = '🎤';
+    }
+}
+
+function playVoiceMessage(dataUrl){
+    const audio = new Audio(dataUrl);
+    audio.play();
+}
+
+// ============ РЕАКЦИИ ============
+function toggleReactionPicker(msgId){
+    const picker = document.getElementById('picker-' + msgId);
+    if(!picker) return;
+    // Закрываем все другие
+    document.querySelectorAll('.reaction-picker').forEach(p => {
+        if(p.id !== 'picker-' + msgId) p.classList.remove('show');
+    });
+    picker.classList.toggle('show');
+}
+
+async function addReaction(msgId, emoji, chatId){
+    if(!currentUser) return;
+    const msgRef = `messages/${chatId}/${msgId}/reactions`;
+    const current = await fbReadOnce(msgRef) || {};
+
+    // Проверяем есть ли уже реакция от этого юзера
+    const myKey = emailToKey(currentUser.email);
+
+    // Убираем старую реакцию если есть
+    Object.keys(current).forEach(e => {
+        if(current[e] && current[e][myKey]){
+            delete current[e][myKey];
+            if(Object.keys(current[e]).length === 0){
+                delete current[e];
+            }
+        }
+    });
+
+    // Добавляем новую (или убираем если та же)
+    if(!current[emoji]) current[emoji] = {};
+    if(!current[emoji][myKey]){
+        current[emoji][myKey] = true;
+    }
+
+    await fbWrite(msgRef, current);
+    // Прячем пикер
+    const picker = document.getElementById('picker-' + msgId);
+    if(picker) picker.classList.remove('show');
+}
+
+// ============ ОТВЕТ НА СООБЩЕНИЕ ============
+function replyToMessage(msgId, chatId){
+    const messages = allMessages[chatId] || {};
+    const msg = messages[msgId];
+    if(!msg) return;
+
+    replyingToMessage = {
+        id: msgId,
+        author: msg.authorName || (allUsers[emailToKey(msg.from)] ? allUsers[emailToKey(msg.from)].name : 'Кто-то'),
+        text: msg.text || (msg.type === 'photo' ? '📷 Фото' : msg.type === 'voice' ? '🎤 Голосовое' : msg.type === 'sticker' ? '🎨 Стикер' : 'Сообщение')
+    };
+    updateReplyIndicator();
+
+    const input = document.getElementById('chat-input-text');
+    if(input) input.focus();
+}
+
+function updateReplyIndicator(){
+    const ind = document.getElementById('reply-indicator');
+    if(!ind) return;
+    if(replyingToMessage){
+        document.getElementById('reply-indicator-author').textContent = 'Ответ: ' + replyingToMessage.author;
+        document.getElementById('reply-indicator-text').textContent = replyingToMessage.text;
+        ind.classList.add('show');
+    } else {
+        ind.classList.remove('show');
+    }
+}
+
+function cancelReply(){
+    replyingToMessage = null;
+    updateReplyIndicator();
+}
+
+// ============ СТИКЕРЫ ============
+const STICKERS = ['😀','😂','🥰','😎','🤩','😴','🥺','😭','😱','🤯','🥳','😈','👻','🤖','👽','🎃','💀','🔥','❤️','💯','⭐','🎉','🏆','👑','💎','🌟','⚡','🌈','🚀','🎬','🎮','🍕','🎁','🎯','🎨','🐺','🦁','🐯','🦊','🐻'];
+
+function toggleStickerPicker(){
+    const picker = document.getElementById('sticker-picker');
+    if(!picker) return;
+    if(picker.classList.contains('show')){
+        picker.classList.remove('show');
+        return;
+    }
+    renderStickerPicker();
+    picker.classList.add('show');
+    // Прячем другие пикеры
+    const emoji = document.getElementById('emoji-picker');
+    if(emoji) emoji.classList.remove('show');
+}
+
+function renderStickerPicker(){
+    const picker = document.getElementById('sticker-picker');
+    if(!picker) return;
+    picker.innerHTML = '<div class="emoji-section-title" style="color:var(--gold);">🎨 СТИКЕРЫ (только для PRO+)</div>';
+    const grid = document.createElement('div');
+    grid.className = 'sticker-grid';
+
+    const canUse = hasProAccess();
+
+    STICKERS.forEach(s => {
+        const div = document.createElement('div');
+        div.className = 'sticker-item' + (!canUse ? ' locked' : '');
+        div.textContent = s;
+        div.onclick = () => {
+            if(!canUse){
+                alert('🔒 Стикеры доступны только для PRO+ подписки!');
+                return;
+            }
+            sendSticker(s);
+        };
+        grid.appendChild(div);
+    });
+    picker.appendChild(grid);
+}
+
+function hasProAccess(){
+    const level = getUserSubLevel();
+    return level === 'pro' || level === 'rapport';
+}
+
+async function sendSticker(sticker){
+    if(!currentUser || currentUser.banned) return;
+    if(!currentChatId) return;
+
+    const isGroup = currentChatType === 'group';
+    let msg;
+    if(isGroup){
+        msg = {
+            from: currentUser.email,
+            authorName: currentUser.name,
+            text: '',
+            sticker: sticker,
+            type: 'sticker',
+            date: new Date().toLocaleString('ru-RU'),
+            timestamp: Date.now(),
+            readBy: {[emailToKey(currentUser.email)]: true},
+            reactions: {}
+        };
+    } else {
+        const otherEmail = currentChatUser ? currentChatUser.email : null;
+        if(!otherEmail) return;
+        msg = {
+            from: currentUser.email,
+            to: otherEmail,
+            text: '',
+            sticker: sticker,
+            type: 'sticker',
+            date: new Date().toLocaleString('ru-RU'),
+            timestamp: Date.now(),
+            read: false,
+            reactions: {}
+        };
+    }
+    const newRef = window.fbPush(window.fbRef(window.fbDb, `messages/${currentChatId}`));
+    await window.fbSet(newRef, msg);
+    document.getElementById('sticker-picker').classList.remove('show');
+    setTimeout(() => {
+        const area = document.getElementById('chat-messages-area');
+        if(area) area.scrollTop = area.scrollHeight;
+    }, 100);
+}
+
+// ============ АВТО ТЕМА (НОЧЬ/ДЕНЬ) ============
+function checkAutoTheme(){
+    if(!currentUser) return;
+    if(currentUser.theme && currentUser.theme !== 'auto') return;
+
+    const hour = new Date().getHours();
+    // С 20:00 до 8:00 — тёмная (default), иначе светлая
+    if(hour >= 20 || hour < 8){
+        document.body.className = '';
+    } else {
+        document.body.className = 'theme-light';
+    }
+}
+
+// Проверяем каждую минуту
+setInterval(checkAutoTheme, 60000);
+
+// ============ МОДЕРАЦИЯ (АДМИН) ============
+function updateModerationBadge(){
+    const count = Object.values(pendingModeration).filter(m => m.status === 'pending').length;
+    const badge = document.getElementById('moderation-badge');
+    if(!badge) return;
+    if(count > 0){
+        badge.textContent = count;
+        badge.style.display = 'inline-block';
+    } else {
+        badge.style.display = 'none';
+    }
+}
+
+function renderModerationList(){
+    const list = document.getElementById('moderation-list');
+    if(!list) return;
+    const items = Object.entries(pendingModeration).filter(([id,m]) => m.status === 'pending').sort((a,b) => (b[1].timestamp||0) - (a[1].timestamp||0));
+
+    if(!items.length){
+        list.innerHTML = '<p style="color:#555;text-align:center;padding:30px;">Нет контента на модерации ✅</p>';
+        return;
+    }
+
+    list.innerHTML = '';
+    items.forEach(([id,m]) => {
+        const div = document.createElement('div');
+        div.className = 'moderation-item';
+
+        let contentHTML = '';
+        if(m.type === 'photo'){
+            contentHTML = `<img src="${m.content}" class="moderation-photo" alt="Фото">`;
+                } else if(m.type === 'voice'){
+            contentHTML = `
+                <div style="background:#0a0a0a;padding:15px;border-radius:10px;margin:10px 0;">
+                    <div style="color:#FF9800;font-size:0.85rem;margin-bottom:10px;">🎤 Голосовое сообщение</div>
+                    <audio controls style="width:100%;max-width:400px;" src="${m.content}"></audio>
+                    <div style="color:#666;font-size:0.75rem;margin-top:5px;">Прослушай перед одобрением</div>
+                </div>
+            `;
+        }
+
+        const targetInfo = m.chatType === 'group'
+            ? `Групповой чат (ID: ${m.target})`
+            : `Личный чат с ${m.target}`;
+
+        div.innerHTML = `
+            <div class="moderation-info">
+                <div>
+                    <div class="moderation-user">📤 От: ${m.fromName} (${m.from})</div>
+                    <div style="color:#888;font-size:0.85rem;margin-top:3px;">💬 ${targetInfo}</div>
+                </div>
+                <div class="moderation-date">${m.date}</div>
+            </div>
+            <div>${contentHTML}</div>
+            <div class="moderation-actions">
+                <button class="action-btn green" onclick="approveModeration('${id}')">✅ ОДОБРИТЬ</button>
+                <button class="action-btn red" onclick="rejectModeration('${id}')">❌ ОТКЛОНИТЬ</button>
+            </div>
+        `;
+        list.appendChild(div);
+    });
+}
+
+async function approveModeration(id){
+    const item = pendingModeration[id];
+    if(!item) return;
+
+    let msg;
+    let chatId;
+
+    if(item.chatType === 'group'){
+        chatId = 'group_' + item.target;
+        msg = {
+            from: item.from,
+            authorName: item.fromName,
+            text: '',
+            type: item.type,
+            date: new Date().toLocaleString('ru-RU'),
+            timestamp: Date.now(),
+            readBy: {[emailToKey(item.from)]: true},
+            reactions: {}
+        };
+    } else {
+        chatId = getChatId(item.from, item.target);
+        msg = {
+            from: item.from,
+            to: item.target,
+            text: '',
+            type: item.type,
+            date: new Date().toLocaleString('ru-RU'),
+            timestamp: Date.now(),
+            read: false,
+            reactions: {}
+        };
+    }
+
+    if(item.type === 'photo'){
+        msg.photo = item.content;
+    } else if(item.type === 'voice'){
+        msg.voice = item.content;
+        msg.duration = item.duration || 0;
+    }
+
+    // Отправляем сообщение в чат
+    const newRef = window.fbPush(window.fbRef(window.fbDb, `messages/${chatId}`));
+    await window.fbSet(newRef, msg);
+
+    // Удаляем из модерации
+    await fbRemovePath(`moderation/${id}`);
+
+    alert('✅ Одобрено! Отправлено в чат.');
+}
+
+async function rejectModeration(id){
+    if(!confirm('Отклонить это сообщение?')) return;
+    await fbRemovePath(`moderation/${id}`);
+    alert('❌ Отклонено и удалено.');
+}
+
+// Обновим switchAdminTab
+const originalSwitchAdminTab = switchAdminTab;
+switchAdminTab = function(tab){
+    const tabs=['users','payments','comments','tickets','promos','episodes','moderation'];
+    document.querySelectorAll('.admin-tab').forEach((t,i)=>t.classList.toggle('active',tabs[i]===tab));
+    tabs.forEach(t=>{
+        const el = document.getElementById('admin-'+t);
+        if(el) el.classList.toggle('active',t===tab);
+    });
+    if(tab === 'moderation') renderModerationList();
+};
+
+// Обновим openAdmin для рендера модерации
+const originalOpenAdmin = openAdmin;
+openAdmin = function(){
+    originalOpenAdmin();
+    renderModerationList();
+    updateModerationBadge();
+};
