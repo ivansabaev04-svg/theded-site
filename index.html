@@ -78,8 +78,10 @@
             <button class="admin-tab" onclick="switchAdminTab('comments')">💬 КОММЕНТАРИИ</button>
             <button class="admin-tab" onclick="switchAdminTab('tickets')">📨 ОБРАЩЕНИЯ <span class="badge-new" id="tickets-badge" style="display:none;">0</span></button>
             <button class="admin-tab" onclick="switchAdminTab('promos')">🎁 ПРОМОКОДЫ</button>
-            <button class="admin-tab" onclick="switchAdminTab('episodes')">🔒 СЕРИИ</button>
+            <button class="admin-tab" onclick="switchAdminTab('episodes')">🔒 БЛОК СЕРИЙ</button>
             <button class="admin-tab" onclick="switchAdminTab('moderation')">📸 МОДЕРАЦИЯ <span class="notification-badge" id="moderation-badge" style="display:none;">0</span></button>
+            <button class="admin-tab" onclick="switchAdminTab('analytics')">📊 АНАЛИТИКА</button>
+            <button class="admin-tab" onclick="switchAdminTab('serials')">🎬 УПР. СЕРИЯМИ</button>
         </div>
 
         <div class="admin-edit-form" id="admin-edit-form">
@@ -93,36 +95,35 @@
         </div>
 
         <div class="admin-section active" id="admin-users">
+            <div class="boost-form" id="boost-form-section">
+                <h4>🚀 НАКРУТКА (только для админа)</h4>
+                <h5 style="color:#888;font-size:0.85rem;margin-top:10px;">👁 НАКРУТКА ПРОСМОТРОВ</h5>
+                <div class="boost-row">
+                    <input type="number" id="boost-views-ep" placeholder="Номер серии (1-50)" min="1" max="50">
+                    <input type="number" id="boost-views-count" placeholder="Сколько просмотров добавить" min="1">
+                    <button class="boost-btn" onclick="boostViews()">➕ ПРОСМОТРЫ</button>
+                </div>
+                <h5 style="color:#888;font-size:0.85rem;margin-top:15px;">❤️ НАКРУТКА ЛАЙКОВ</h5>
+                <div class="boost-row">
+                    <input type="number" id="boost-likes-ep" placeholder="Номер серии (1-50)" min="1" max="50">
+                    <input type="number" id="boost-likes-count" placeholder="Сколько лайков добавить" min="1">
+                    <button class="boost-btn" onclick="boostLikes()">➕ ЛАЙКИ</button>
+                </div>
+                <h5 style="color:#888;font-size:0.85rem;margin-top:15px;">👥 НАКРУТКА ПОДПИСЧИКОВ</h5>
+                <div class="boost-row">
+                    <select id="boost-followers-user">
+                        <option value="">Выбери пользователя</option>
+                    </select>
+                    <input type="number" id="boost-followers-count" placeholder="Сколько подписчиков" min="1">
+                    <button class="boost-btn" onclick="boostFollowers()">➕ ПОДПИСЧИКИ</button>
+                </div>
+            </div>
             <table class="admin-table">
                 <thead><tr><th>EMAIL</th><th>ИМЯ</th><th>БАЛАНС</th><th>СТАТУС</th><th>ДЕЙСТВИЯ</th></tr></thead>
                 <tbody id="admin-users-body"></tbody>
-            </table><div class="boost-form" id="boost-form-section">
-    <h4>🚀 НАКРУТКА (только для админа)</h4>
-
-    <h5 style="color:#888;font-size:0.85rem;margin-top:10px;">👁 НАКРУТКА ПРОСМОТРОВ</h5>
-    <div class="boost-row">
-        <input type="number" id="boost-views-ep" placeholder="Номер серии (1-50)" min="1" max="50">
-        <input type="number" id="boost-views-count" placeholder="Сколько просмотров добавить" min="1">
-        <button class="boost-btn" onclick="boostViews()">➕ ПРОСМОТРЫ</button>
-    </div>
-
-    <h5 style="color:#888;font-size:0.85rem;margin-top:15px;">❤️ НАКРУТКА ЛАЙКОВ</h5>
-    <div class="boost-row">
-        <input type="number" id="boost-likes-ep" placeholder="Номер серии (1-50)" min="1" max="50">
-        <input type="number" id="boost-likes-count" placeholder="Сколько лайков добавить" min="1">
-        <button class="boost-btn" onclick="boostLikes()">➕ ЛАЙКИ</button>
-    </div>
-
-    <h5 style="color:#888;font-size:0.85rem;margin-top:15px;">👥 НАКРУТКА ПОДПИСЧИКОВ</h5>
-    <div class="boost-row">
-        <select id="boost-followers-user">
-            <option value="">Выбери пользователя</option>
-        </select>
-        <input type="number" id="boost-followers-count" placeholder="Сколько подписчиков" min="1">
-        <button class="boost-btn" onclick="boostFollowers()">➕ ПОДПИСЧИКИ</button>
-    </div>
-</div>
+            </table>
         </div>
+
         <div class="admin-section" id="admin-payments">
             <div class="payment-form">
                 <h3>➕ ЗАПИСАТЬ ПОПОЛНЕНИЕ</h3>
@@ -135,42 +136,110 @@
                 <tbody id="admin-payments-body"></tbody>
             </table>
         </div>
+
         <div class="admin-section" id="admin-comments">
             <table class="admin-table">
                 <thead><tr><th>ДАТА</th><th>АВТОР</th><th>СЕРИЯ</th><th>ТЕКСТ</th><th>ДЕЙСТВИЯ</th></tr></thead>
                 <tbody id="admin-comments-body"></tbody>
             </table>
         </div>
+
         <div class="admin-section" id="admin-tickets">
             <div id="admin-tickets-list"></div>
         </div>
+
         <div class="admin-section" id="admin-promos">
             <div class="promo-create-form">
-    <h3 id="promo-create-title">🎁 СОЗДАТЬ ПРОМОКОД</h3>
-    <input type="text" id="new-promo-code" placeholder="КОД" style="text-transform:uppercase;">
-    <select id="new-promo-subtype" style="width:100%;padding:12px 15px;background:#0a0a0a;border:2px solid #333;border-radius:8px;color:white;font-size:1rem;margin-bottom:12px;">
-        <option value="">Выбери подписку</option>
-        <option value="basic-temp">🎬 BASIC ВРЕМЕННАЯ (на минуты)</option>
-        <option value="pissing">💧 ПИСАЮЩИЙ (постоянная)</option>
-        <option value="basic">🎬 BASIC (постоянная)</option>
-        <option value="lux">💎 LUX (постоянная)</option>
-        <option value="pro">👑 САМЫЙ КРУТОЙ (постоянная)</option>
-        <option value="rapport">🛡️ РАППОРТ (постоянная)</option>
-    </select>
-    <input type="number" id="new-promo-minutes" placeholder="Минуты (только для временной BASIC)" min="1" value="5">
-    <input type="number" id="new-promo-uses" placeholder="Сколько раз использовать" min="1" value="1">
-    <button class="action-btn gold" style="width:100%;padding:12px;" onclick="createPromo()">✅ СОЗДАТЬ ПРОМОКОД</button>
-</div>
+                <h3 id="promo-create-title">🎁 СОЗДАТЬ ПРОМОКОД</h3>
+                <input type="text" id="new-promo-code" placeholder="КОД" style="text-transform:uppercase;">
+                <select id="new-promo-subtype" style="width:100%;padding:12px 15px;background:#0a0a0a;border:2px solid #333;border-radius:8px;color:white;font-size:1rem;margin-bottom:12px;">
+                    <option value="">Выбери подписку</option>
+                    <option value="basic-temp">🎬 BASIC ВРЕМЕННАЯ (на минуты)</option>
+                    <option value="pissing">💧 ПИСАЮЩИЙ (постоянная)</option>
+                    <option value="basic">🎬 BASIC (постоянная)</option>
+                    <option value="lux">💎 LUX (постоянная)</option>
+                    <option value="pro">👑 САМЫЙ КРУТОЙ (постоянная)</option>
+                    <option value="rapport">🛡️ РАППОРТ (постоянная)</option>
+                </select>
+                <input type="number" id="new-promo-minutes" placeholder="Минуты (только для временной BASIC)" min="1" value="5">
+                <input type="number" id="new-promo-uses" placeholder="Сколько раз использовать" min="1" value="1">
+                <button class="action-btn gold" style="width:100%;padding:12px;" onclick="createPromo()">✅ СОЗДАТЬ ПРОМОКОД</button>
+            </div>
             <table class="admin-table">
                 <thead><tr><th>КОД</th><th>ПОДПИСКА</th><th>ИСПОЛЬЗОВАНО</th><th>СОЗДАН</th><th>ДЕЙСТВИЯ</th></tr></thead>
                 <tbody id="admin-promos-body"></tbody>
             </table>
         </div>
+
         <div class="admin-section" id="admin-moderation">
-    <h3 style="font-family:'Bebas Neue';letter-spacing:3px;margin-bottom:20px;color:#FF9800;">📸 МОДЕРАЦИЯ КОНТЕНТА</h3>
-    <p style="color:#888;margin-bottom:20px;">Одобри или отклони фото и голосовые сообщения перед публикацией в чате</p>
-    <div id="moderation-list"></div>
-</div>
+            <h3 style="font-family:'Bebas Neue';letter-spacing:3px;margin-bottom:20px;color:#FF9800;">📸 МОДЕРАЦИЯ КОНТЕНТА</h3>
+            <p style="color:#888;margin-bottom:20px;">Одобри или отклони фото и голосовые сообщения перед публикацией в чате</p>
+            <div id="moderation-list"></div>
+        </div>
+
+        <!-- РАСШИРЕННАЯ АНАЛИТИКА -->
+        <div class="admin-section" id="admin-analytics">
+            <h3 style="font-family:'Bebas Neue';letter-spacing:3px;margin-bottom:20px;color:var(--gold);">📊 РАСШИРЕННАЯ АНАЛИТИКА</h3>
+
+            <div class="stats-charts">
+                <div class="chart-card">
+                    <div class="chart-title"><span class="online-indicator"></span>ОНЛАЙН СЕЙЧАС</div>
+                    <div id="online-users-count" style="font-size:3rem;font-family:'Bebas Neue';color:var(--green);text-align:center;margin:15px 0;">0</div>
+                    <div class="online-list" id="online-users-list"></div>
+                </div>
+
+                <div class="chart-card">
+                    <div class="chart-title">📈 РЕГИСТРАЦИИ (7 ДНЕЙ)</div>
+                    <div id="registrations-chart"></div>
+                </div>
+
+                <div class="chart-card">
+                    <div class="chart-title">🔥 ТОП АКТИВНОСТИ</div>
+                    <div id="activity-chart"></div>
+                </div>
+
+                <div class="chart-card">
+                    <div class="chart-title">🎬 ТОП СЕРИЙ</div>
+                    <div id="top-episodes-chart"></div>
+                </div>
+            </div>
+
+            <h3 style="font-family:'Bebas Neue';letter-spacing:3px;margin:30px 0 15px;color:var(--blue);">📋 АНАЛИТИКА ПОЛЬЗОВАТЕЛЕЙ</h3>
+            <input type="text" id="analytics-search" placeholder="🔍 Введи email или имя пользователя" style="width:100%;padding:12px;background:#0a0a0a;border:2px solid #333;border-radius:8px;color:white;margin-bottom:15px;" oninput="searchUserAnalytics()">
+            <div id="user-analytics-result"></div>
+        </div>
+
+        <!-- УПРАВЛЕНИЕ СЕРИАЛАМИ -->
+        <div class="admin-section" id="admin-serials">
+            <h3 style="font-family:'Bebas Neue';letter-spacing:3px;margin-bottom:20px;color:var(--red);">🎬 УПРАВЛЕНИЕ СЕРИАЛАМИ</h3>
+
+            <div class="serial-manage-form">
+                <h4>➕ ДОБАВИТЬ НОВЫЙ СЕРИАЛ</h4>
+                <input type="text" id="new-serial-id" placeholder="ID сериала (например: skeleton)">
+                <input type="text" id="new-serial-name" placeholder="Название (например: Приключения скелета)">
+                <input type="text" id="new-serial-icon" placeholder="Эмодзи иконка (например: 💀)" value="🎬">
+                <input type="text" id="new-serial-poster" placeholder="Ссылка на постер (необязательно)">
+                <label style="display:flex;align-items:center;gap:8px;margin:10px 0;color:#ccc;">
+                    <input type="checkbox" id="new-serial-vip" style="width:auto;">
+                    <span>🔒 Только для VIP (подписчиков)</span>
+                </label>
+                <button class="action-btn green" style="width:100%;padding:12px;" onclick="createSerial()">✅ СОЗДАТЬ СЕРИАЛ</button>
+            </div>
+
+            <div class="serial-manage-form">
+                <h4>➕ ДОБАВИТЬ СЕРИЮ К СУЩЕСТВУЮЩЕМУ СЕРИАЛУ</h4>
+                <select id="add-ep-serial-select" style="width:100%;padding:12px;background:#0a0a0a;border:2px solid #333;border-radius:8px;color:white;margin-bottom:10px;">
+                    <option value="">Выбери сериал</option>
+                </select>
+                <input type="number" id="add-ep-number" placeholder="Номер серии (например: 51)" min="1">
+                <input type="text" id="add-ep-url" placeholder="Ссылка на видео (например: https://github.com/.../51.mp4)">
+                <button class="action-btn green" style="width:100%;padding:12px;" onclick="addEpisode()">➕ ДОБАВИТЬ СЕРИЮ</button>
+            </div>
+
+            <h4 style="font-family:'Bebas Neue';letter-spacing:2px;color:var(--gold);margin:20px 0 10px;">📺 ВСЕ СЕРИАЛЫ</h4>
+            <div id="serials-list"></div>
+        </div>
+
         <div class="admin-section" id="admin-episodes">
             <h3 style="font-family:'Bebas Neue';letter-spacing:3px;margin-bottom:20px;color:var(--red);">🔒 БЛОКИРОВКА СЕРИЙ</h3>
             <p style="color:#888;margin-bottom:20px;">Заблокированные серии не показываются обычным пользователям. Админы и Раппорт видят всё.</p>
@@ -215,6 +284,9 @@
                 <button class="nav-tab" id="btn-profile" onclick="showPage('profile')">ПРОФИЛЬ</button>
                 <button class="nav-tab" id="btn-support" onclick="showPage('support')">📨 ПОДДЕРЖКА</button>
                 <button class="nav-tab" id="btn-messages" onclick="showPage('messages')">💬 СООБЩЕНИЯ <span class="badge-new" id="messages-badge" style="display:none;">0</span></button>
+                <button class="nav-tab" id="btn-news" onclick="showPage('news')">📢 НОВОСТИ <span class="badge-new" id="news-badge" style="display:none;">0</span></button>
+                <button class="nav-tab" id="btn-top" onclick="showPage('top')">🏆 ТОП</button>
+                <button class="nav-tab" id="btn-reminders" onclick="showPage('reminders')">🔔 НАПОМИНАНИЯ</button>
                 <button class="nav-tab" id="btn-admin" onclick="openAdmin()" style="display:none;background:#333;">🔧 АДМИН</button>
             </div>
         </div>
@@ -229,6 +301,7 @@
 
     <!-- ГЛАВНАЯ -->
     <div id="page-home" class="page active">
+        <div id="birthday-banner-container"></div>
         <div class="hero">
             <img src="https://github.com/ivansabaev04-svg/theded-videos/releases/download/v1/icon.png" alt="THE DED" class="hero-logo">
             <h1>THE <span>DED</span></h1>
@@ -264,7 +337,6 @@
                 <span class="video-action-btn">💬 <span id="comment-count-display">0</span></span>
                 <a class="video-action-btn download" id="download-btn" download target="_blank">⬇ СКАЧАТЬ</a>
             </div>
-
             <div class="rating-section">
                 <div class="rating-header">
                     <div class="rating-title">⭐ ОЦЕНИ СЕРИЮ</div>
@@ -277,7 +349,6 @@
                 <div class="stars-msg" id="stars-msg">Поставь оценку от 1 до 5 звёзд</div>
             </div>
         </div>
-
         <div class="comments-section">
             <div class="comments-title">💬 КОММЕНТАРИИ <span class="count" id="comments-count">(0)</span></div>
             <div id="comment-banned-msg"></div>
@@ -291,6 +362,7 @@
             <div class="comments-list" id="comments-list"></div>
         </div>
     </div>
+
     <!-- ПРОФИЛЬ -->
     <div id="page-profile" class="page">
         <div class="profile-card">
@@ -301,17 +373,19 @@
             <div class="profile-email" id="profile-email-display">email</div>
             <div class="profile-bio" id="profile-bio">Нет описания</div>
             <button class="edit-bio-btn" onclick="editBio()">✏️ Изменить описание</button>
-            <div class="profile-stats">
-    <div class="profile-stat" onclick="showFollowers(currentUser.email)">
-        <div class="profile-stat-number" id="my-followers-count">0</div>
-        <div class="profile-stat-label">ПОДПИСЧИКИ</div>
-    </div>
-    <div class="profile-stat" onclick="showFollowing(currentUser.email)">
-        <div class="profile-stat-number" id="my-following-count">0</div>
-        <div class="profile-stat-label">ПОДПИСКИ</div>
-    </div>
-</div>
+            <button class="edit-bio-btn" onclick="editBirthday()" style="margin-left:10px;">🎂 День рождения</button>
             <div class="sub-status inactive" id="sub-status">БЕЗ ПОДПИСКИ</div>
+
+            <div class="profile-stats">
+                <div class="profile-stat" onclick="showFollowers(currentUser.email)">
+                    <div class="profile-stat-number" id="my-followers-count">0</div>
+                    <div class="profile-stat-label">ПОДПИСЧИКИ</div>
+                </div>
+                <div class="profile-stat" onclick="showFollowing(currentUser.email)">
+                    <div class="profile-stat-number" id="my-following-count">0</div>
+                    <div class="profile-stat-label">ПОДПИСКИ</div>
+                </div>
+            </div>
 
             <div class="promo-section">
                 <div class="promo-title">🎁 ВВЕСТИ ПРОМОКОД</div>
@@ -344,9 +418,9 @@
                 <div class="wallet-currency-select" id="currency-select"></div>
                 <div class="wallet-balance" id="wallet-balance">0.00 ₽</div>
                 <button class="topup-btn disabled" onclick="showTopupDisabled()">💳 ПОПОЛНЕНИЕ ВРЕМЕННО НЕДОСТУПНО</button>
-<div class="disabled-msg" id="topup-disabled-msg" style="display:none;">
-    ⚠️ Пополнение временно отключено. Мы работаем над этим!
-</div>
+                <div class="disabled-msg" id="topup-disabled-msg" style="display:none;">
+                    ⚠️ Пополнение временно отключено. Мы работаем над этим!
+                </div>
             </div>
 
             <div class="settings-section" style="margin-top:30px;">
@@ -392,7 +466,7 @@
             <div class="messages-sidebar">
                 <h3 class="messages-title">💬 ЧАТЫ</h3>
                 <button class="new-chat-btn" onclick="newChat()">➕ НОВЫЙ ЧАТ</button>
-<button class="create-group-btn" onclick="openGroupCreate()">👥 СОЗДАТЬ ГРУППУ</button>
+                <button class="create-group-btn" onclick="openGroupCreate()">👥 СОЗДАТЬ ГРУППУ</button>
                 <div class="chats-list" id="chats-list"></div>
             </div>
             <div class="messages-main" id="messages-main">
@@ -401,46 +475,149 @@
         </div>
     </div>
 
-    <script src="script.js"></script>
+    <!-- НОВОСТИ -->
+    <div id="page-news" class="page">
+        <h2 class="section-header">📢 НОВОСТИ ОТ АДМИНА</h2>
+        <div class="news-page">
+            <div class="news-create-form" id="news-create-form" style="display:none;">
+                <div class="news-create-title">✍️ СОЗДАТЬ НОВОСТЬ</div>
+                <input type="text" id="news-title-input" placeholder="Заголовок новости" maxlength="100">
+                <textarea id="news-text-input" placeholder="Текст новости..." maxlength="1000"></textarea>
+                <label style="display:flex;align-items:center;gap:8px;margin:10px 0;color:#888;">
+                    <input type="checkbox" id="news-important" style="width:auto;">
+                    <span>⭐ Важная новость (выделить золотым)</span>
+                </label>
+                <button class="btn" onclick="createNews()">📤 ОПУБЛИКОВАТЬ</button>
+            </div>
+            <div id="news-list"></div>
+        </div>
+    </div>
+
+    <!-- ТОП ПОЛЬЗОВАТЕЛЕЙ -->
+    <div id="page-top" class="page">
+        <h2 class="section-header">🏆 ТОП ПОЛЬЗОВАТЕЛЕЙ</h2>
+        <div class="top-users-page">
+            <div class="top-tabs">
+                <button class="top-tab active" onclick="switchTopTab('comments')">💬 ПО КОММЕНТАМ</button>
+                <button class="top-tab" onclick="switchTopTab('subs')">👥 ПО ПОДПИСЧИКАМ</button>
+                <button class="top-tab" onclick="switchTopTab('level')">👑 ПО СТАТУСУ</button>
+            </div>
+            <div class="top-users-list" id="top-users-list"></div>
+        </div>
+    </div>
+
+    <!-- НАПОМИНАНИЯ -->
+    <div id="page-reminders" class="page">
+        <h2 class="section-header">🔔 МОИ НАПОМИНАНИЯ</h2>
+        <div class="reminders-page">
+            <div class="reminder-create">
+                <h3>➕ СОЗДАТЬ НАПОМИНАНИЕ</h3>
+                <input type="text" id="reminder-text-input" placeholder="О чём напомнить?" maxlength="100" style="width:100%;padding:12px;background:#0a0a0a;border:2px solid #333;border-radius:8px;color:white;margin-bottom:15px;">
+                <div style="color:#888;font-size:0.9rem;margin-bottom:10px;">Через сколько напомнить:</div>
+                <div class="reminder-time-buttons">
+                    <button class="reminder-time-btn" data-min="5" onclick="selectReminderTime(this, 5)">5 мин</button>
+                    <button class="reminder-time-btn" data-min="15" onclick="selectReminderTime(this, 15)">15 мин</button>
+                    <button class="reminder-time-btn" data-min="30" onclick="selectReminderTime(this, 30)">30 мин</button>
+                    <button class="reminder-time-btn" data-min="60" onclick="selectReminderTime(this, 60)">1 час</button>
+                    <button class="reminder-time-btn" data-min="180" onclick="selectReminderTime(this, 180)">3 часа</button>
+                    <button class="reminder-time-btn" data-min="1440" onclick="selectReminderTime(this, 1440)">1 день</button>
+                </div>
+                <button class="btn" onclick="createReminder()">🔔 ПОСТАВИТЬ НАПОМИНАНИЕ</button>
+            </div>
+            <div id="reminders-list"></div>
+        </div>
+    </div>
+
     <!-- ПОИСК ПОЛЬЗОВАТЕЛЕЙ -->
-<div class="user-search-modal" id="user-search-modal">
-    <div class="user-search-box">
-        <div class="user-search-title">🔍 ПОИСК ПОЛЬЗОВАТЕЛЯ</div>
-        <input type="text" class="user-search-input" id="user-search-input" placeholder="Введи имя пользователя..." oninput="searchUsers()">
-        <div class="user-search-results" id="user-search-results"></div>
-        <button class="search-close" onclick="closeUserSearch()">ЗАКРЫТЬ</button>
+    <div class="user-search-modal" id="user-search-modal">
+        <div class="user-search-box">
+            <div class="user-search-title">🔍 ПОИСК ПОЛЬЗОВАТЕЛЯ</div>
+            <input type="text" class="user-search-input" id="user-search-input" placeholder="Введи имя пользователя..." oninput="searchUsers()">
+            <div class="user-search-results" id="user-search-results"></div>
+            <button class="search-close" onclick="closeUserSearch()">ЗАКРЫТЬ</button>
+        </div>
     </div>
-</div>
 
-<!-- ПРОФИЛЬ ДРУГОГО ПОЛЬЗОВАТЕЛЯ -->
-<div class="user-profile-modal" id="user-profile-modal">
-    <div class="user-profile-content" id="user-profile-content">
-        <button class="user-profile-close" onclick="closeUserProfile()">✕</button>
-        <div id="user-profile-body"></div>
+    <!-- ПРОФИЛЬ ДРУГОГО ПОЛЬЗОВАТЕЛЯ -->
+    <div class="user-profile-modal" id="user-profile-modal">
+        <div class="user-profile-content" id="user-profile-content">
+            <button class="user-profile-close" onclick="closeUserProfile()">✕</button>
+            <div id="user-profile-body"></div>
+        </div>
     </div>
-</div>
 
-<!-- СОЗДАНИЕ ГРУППЫ -->
-<div class="group-members-modal" id="group-create-modal">
-    <div class="group-members-content">
-        <div class="user-search-title">👥 СОЗДАТЬ ГРУППУ</div>
-        <input type="text" class="user-search-input" id="group-name-input" placeholder="Название группы..." maxlength="30">
-        <p style="color:#888;font-size:0.85rem;margin-top:10px;">Выбери участников (макс 10):</p>
-        <div class="selected-members" id="group-selected-members"></div>
-        <input type="text" class="user-search-input" id="group-search-input" placeholder="Найти пользователя по имени..." oninput="searchGroupMembers()">
-        <div class="user-search-results" id="group-search-results"></div>
-        <button class="boost-btn" style="width:100%;background:var(--green);color:white;margin-top:10px;" onclick="createGroup()">✅ СОЗДАТЬ ГРУППУ</button>
-        <button class="search-close" onclick="closeGroupCreate()">ОТМЕНА</button>
+    <!-- СОЗДАНИЕ ГРУППЫ -->
+    <div class="group-members-modal" id="group-create-modal">
+        <div class="group-members-content">
+            <div class="user-search-title">👥 СОЗДАТЬ ГРУППУ</div>
+            <input type="text" class="user-search-input" id="group-name-input" placeholder="Название группы..." maxlength="30">
+            <p style="color:#888;font-size:0.85rem;margin-top:10px;">Выбери участников (макс 10):</p>
+            <div class="selected-members" id="group-selected-members"></div>
+            <input type="text" class="user-search-input" id="group-search-input" placeholder="Найти пользователя по имени..." oninput="searchGroupMembers()">
+            <div class="user-search-results" id="group-search-results"></div>
+            <button class="boost-btn" style="width:100%;background:var(--green);color:white;margin-top:10px;" onclick="createGroup()">✅ СОЗДАТЬ ГРУППУ</button>
+            <button class="search-close" onclick="closeGroupCreate()">ОТМЕНА</button>
+        </div>
     </div>
-</div>
 
-<!-- УЧАСТНИКИ ГРУППЫ -->
-<div class="group-members-modal" id="group-members-modal">
-    <div class="group-members-content">
-        <div class="user-search-title">👥 УЧАСТНИКИ ГРУППЫ</div>
-        <div id="group-members-list" style="margin:15px 0;"></div>
-        <button class="search-close" onclick="closeGroupMembers()">ЗАКРЫТЬ</button>
+    <!-- УЧАСТНИКИ ГРУППЫ -->
+    <div class="group-members-modal" id="group-members-modal">
+        <div class="group-members-content">
+            <div class="user-search-title">👥 УЧАСТНИКИ ГРУППЫ</div>
+            <div id="group-members-list" style="margin:15px 0;"></div>
+            <button class="search-close" onclick="closeGroupMembers()">ЗАКРЫТЬ</button>
+        </div>
     </div>
-</div>
+
+    <!-- МОДАЛКА ПРАВ МОДЕРАТОРА -->
+    <div class="perms-modal" id="perms-modal">
+        <div class="perms-content">
+            <div class="perms-title">🔒 ПРАВА МОДЕРАТОРА</div>
+            <div id="perms-user-info" style="color:#888;margin-bottom:20px;"></div>
+            <input type="hidden" id="perms-user-email">
+
+            <div class="perm-item">
+                <label for="perm-ban">🚫 Может банить пользователей</label>
+                <div class="perm-toggle" id="perm-ban" onclick="togglePerm(this)"></div>
+            </div>
+
+            <div class="perm-item">
+                <label for="perm-delete-comments">💬 Может удалять комментарии</label>
+                <div class="perm-toggle" id="perm-delete-comments" onclick="togglePerm(this)"></div>
+            </div>
+
+            <div class="perm-item">
+                <label for="perm-moderate">📸 Может модерировать фото/голосовые</label>
+                <div class="perm-toggle" id="perm-moderate" onclick="togglePerm(this)"></div>
+            </div>
+
+            <div class="perm-item">
+                <label for="perm-warn">⚠️ Может выдавать предупреждения</label>
+                <div class="perm-toggle" id="perm-warn" onclick="togglePerm(this)"></div>
+            </div>
+
+            <div class="perm-item">
+                <label for="perm-delete-tickets">📨 Может закрывать обращения</label>
+                <div class="perm-toggle" id="perm-delete-tickets" onclick="togglePerm(this)"></div>
+            </div>
+
+            <div style="display:flex;gap:10px;margin-top:20px;">
+                <button class="action-btn green" style="flex:1;" onclick="savePerms()">💾 СОХРАНИТЬ</button>
+                <button class="action-btn gray" onclick="closePerms()">ОТМЕНА</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- МОДАЛКА ПРЕДУПРЕЖДЕНИЯ -->
+    <div class="warn-modal" id="warn-modal">
+        <div class="warn-modal-box">
+            <div class="warn-modal-title">⚠️ ПРЕДУПРЕЖДЕНИЕ!</div>
+            <div id="warn-modal-text" style="font-size:1.1rem;line-height:1.5;"></div>
+            <div id="warn-modal-count" style="margin-top:15px;font-size:1.3rem;font-family:'Bebas Neue';letter-spacing:3px;"></div>
+            <button class="warn-modal-close" onclick="closeWarnModal()">ПОНЯЛ</button>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
 </body>
 </html>
