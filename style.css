@@ -2733,3 +2733,284 @@ body.season-spring {
     background: #666;
     box-shadow: none;
 }
+/* ===== ОПРОСЫ В НОВОСТЯХ ===== */
+.poll-container {
+    background: #0a0a0a;
+    border-radius: 10px;
+    padding: 15px;
+    margin-top: 15px;
+    border-left: 4px solid var(--blue);
+}
+
+.poll-question {
+    font-family: 'Bebas Neue', sans-serif;
+    letter-spacing: 2px;
+    color: var(--blue);
+    font-size: 1.1rem;
+    margin-bottom: 12px;
+}
+
+.poll-option {
+    background: var(--card-bg);
+    border: 2px solid #333;
+    padding: 10px 15px;
+    margin-bottom: 8px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: 0.3s;
+    position: relative;
+    overflow: hidden;
+}
+
+.poll-option:hover {
+    border-color: var(--blue);
+}
+
+.poll-option.voted {
+    background: linear-gradient(90deg, rgba(33,150,243,0.3) 0%, var(--card-bg) 100%);
+    border-color: var(--blue);
+}
+
+.poll-option-fill {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    background: rgba(33,150,243,0.2);
+    transition: width 0.5s;
+    z-index: 0;
+}
+
+.poll-option-content {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.poll-option-text {
+    font-weight: 700;
+    color: white;
+}
+
+.poll-option-stats {
+    color: var(--blue);
+    font-family: 'Bebas Neue', sans-serif;
+    letter-spacing: 1px;
+    font-size: 0.9rem;
+}
+
+.poll-total {
+    color: #888;
+    font-size: 0.85rem;
+    margin-top: 10px;
+    text-align: center;
+}
+
+.poll-check-mark {
+    color: var(--blue);
+    font-weight: 700;
+    margin-right: 5px;
+}
+
+/* Форма создания опроса */
+.poll-create-block {
+    background: #111;
+    border-left: 4px solid var(--blue);
+    padding: 15px;
+    border-radius: 8px;
+    margin: 15px 0;
+}
+
+.poll-create-block h4 {
+    color: var(--blue);
+    font-family: 'Bebas Neue', sans-serif;
+    letter-spacing: 2px;
+    margin-bottom: 10px;
+}
+
+.poll-option-input {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 8px;
+    align-items: center;
+}
+
+.poll-option-input input {
+    flex: 1;
+    padding: 10px !important;
+    background: #0a0a0a !important;
+    border: 1px solid #333 !important;
+    border-radius: 6px !important;
+    color: white !important;
+    margin: 0 !important;
+}
+
+.poll-option-input button {
+    background: var(--red);
+    border: none;
+    color: white;
+    padding: 8px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.add-poll-option-btn {
+    background: var(--blue);
+    color: white;
+    border: none;
+    padding: 8px 15px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-family: 'Bebas Neue', sans-serif;
+    letter-spacing: 2px;
+    margin-top: 8px;
+}
+
+/* ===== ОТКАТ НАКРУТКИ ===== */
+.reset-boost-section {
+    background: #1a0000;
+    border: 2px solid var(--red);
+    border-radius: 12px;
+    padding: 20px;
+    margin: 20px 0;
+}
+
+.reset-boost-section h4 {
+    color: var(--red);
+    font-family: 'Bebas Neue', sans-serif;
+    letter-spacing: 3px;
+    margin-bottom: 10px;
+}
+
+.reset-boost-warning {
+    color: #FF9800;
+    font-size: 0.9rem;
+    background: rgba(255,152,0,0.1);
+    padding: 10px;
+    border-radius: 8px;
+    margin: 10px 0;
+    border-left: 3px solid #FF9800;
+}
+
+.reset-boost-btn {
+    background: var(--red);
+    color: white;
+    border: none;
+    padding: 12px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-family: 'Bebas Neue', sans-serif;
+    letter-spacing: 2px;
+    margin: 5px;
+    transition: 0.3s;
+}
+
+.reset-boost-btn:hover {
+    background: #ff0a16;
+    transform: scale(1.05);
+}
+
+.reset-boost-btn.danger {
+    background: #B71C1C;
+}
+
+/* ===== ОПРОС В ЧАТЕ ===== */
+.chat-poll-btn {
+    background: var(--card-bg);
+    border: 1px solid #333;
+    color: white;
+    padding: 0 15px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 1.3rem;
+    transition: 0.3s;
+}
+
+.chat-poll-btn:hover {
+    border-color: var(--blue);
+}
+
+.chat-poll-modal {
+    display: none;
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: rgba(0,0,0,0.85);
+    z-index: 9000;
+    align-items: center;
+    justify-content: center;
+}
+
+.chat-poll-modal.show {
+    display: flex;
+}
+
+.chat-poll-content {
+    background: var(--dark-gray);
+    border-radius: 15px;
+    padding: 25px;
+    width: 90%;
+    max-width: 450px;
+}
+
+.chat-poll-content h3 {
+    color: var(--blue);
+    font-family: 'Bebas Neue', sans-serif;
+    letter-spacing: 3px;
+    margin-bottom: 15px;
+}
+
+.msg-poll {
+    background: rgba(0,0,0,0.3);
+    padding: 12px;
+    border-radius: 10px;
+    border-left: 4px solid var(--blue);
+    margin: 5px 0;
+    min-width: 220px;
+}
+
+.msg-poll-question {
+    font-weight: 700;
+    color: var(--blue);
+    margin-bottom: 10px;
+    font-size: 0.95rem;
+}
+
+.msg-poll-option {
+    background: rgba(0,0,0,0.4);
+    padding: 8px 12px;
+    border-radius: 6px;
+    margin-bottom: 5px;
+    cursor: pointer;
+    transition: 0.2s;
+    position: relative;
+    overflow: hidden;
+    font-size: 0.85rem;
+}
+
+.msg-poll-option:hover {
+    background: rgba(33,150,243,0.2);
+}
+
+.msg-poll-option.voted {
+    background: rgba(33,150,243,0.3);
+}
+
+.msg-poll-option-fill {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    background: rgba(33,150,243,0.15);
+    z-index: 0;
+}
+
+.msg-poll-option-text {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    justify-content: space-between;
+    color: white;
+}
