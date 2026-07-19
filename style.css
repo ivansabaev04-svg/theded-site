@@ -1886,3 +1886,850 @@ audio::-webkit-media-controls-play-button {
 .msg-bubble.mine audio {
     filter: hue-rotate(340deg);
 }
+/* ===== ЗВОНКИ ===== */
+.call-btn {
+    background: var(--card-bg);
+    border: 1px solid #333;
+    color: white;
+    padding: 0 15px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 1.3rem;
+    transition: 0.3s;
+}
+.call-btn:hover {
+    border-color: var(--green);
+    background: #1a1a1a;
+}
+.call-btn.video:hover {
+    border-color: var(--blue);
+}
+
+.msg-call {
+    background: linear-gradient(135deg, #4CAF50, #2E7D32);
+    padding: 12px 15px;
+    border-radius: 10px;
+    color: white;
+    cursor: pointer;
+    display: inline-block;
+    text-decoration: none;
+    transition: 0.3s;
+}
+.msg-call:hover {
+    transform: scale(1.05);
+}
+.msg-call.video {
+    background: linear-gradient(135deg, #2196F3, #1565C0);
+}
+
+/* ===== НОВОСТИ ===== */
+.news-page {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.news-create-form {
+    background: var(--card-bg);
+    border: 1px solid #333;
+    border-radius: 15px;
+    padding: 25px;
+    margin-bottom: 30px;
+}
+
+.news-create-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.5rem;
+    letter-spacing: 3px;
+    color: var(--gold);
+    margin-bottom: 15px;
+}
+
+.news-create-form input,
+.news-create-form textarea {
+    width: 100%;
+    padding: 12px 15px;
+    background: #0a0a0a;
+    border: 2px solid #333;
+    border-radius: 8px;
+    color: white;
+    font-size: 1rem;
+    margin-bottom: 10px;
+    font-family: 'Roboto', sans-serif;
+}
+
+.news-create-form textarea {
+    min-height: 100px;
+    resize: vertical;
+}
+
+.news-item {
+    background: var(--card-bg);
+    border: 1px solid #222;
+    border-radius: 15px;
+    padding: 20px;
+    margin-bottom: 15px;
+    border-left: 4px solid var(--red);
+    position: relative;
+}
+
+.news-item.important {
+    border-left-color: var(--gold);
+    background: linear-gradient(135deg, #1a1500, var(--card-bg));
+}
+
+.news-item-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.news-item-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.4rem;
+    letter-spacing: 2px;
+    color: var(--red);
+}
+
+.news-item.important .news-item-title {
+    color: var(--gold);
+}
+
+.news-item-date {
+    color: #888;
+    font-size: 0.85rem;
+}
+
+.news-item-text {
+    color: #ccc;
+    line-height: 1.6;
+    margin-bottom: 10px;
+    white-space: pre-wrap;
+}
+
+.news-item-author {
+    color: #888;
+    font-size: 0.85rem;
+    font-style: italic;
+}
+
+.news-delete-btn {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    background: var(--red);
+    border: none;
+    color: white;
+    padding: 5px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.85rem;
+}
+
+/* ===== ДЕНЬ РОЖДЕНИЯ ===== */
+.birthday-banner {
+    background: linear-gradient(135deg, #FFD700, #FF9800, #E91E63);
+    background-size: 300% 300%;
+    animation: bd-anim 5s ease infinite;
+    padding: 20px;
+    border-radius: 15px;
+    text-align: center;
+    margin: 20px 0;
+    font-family: 'Bebas Neue', sans-serif;
+    color: white;
+    font-size: 1.3rem;
+    letter-spacing: 3px;
+    box-shadow: 0 5px 30px rgba(255, 215, 0, 0.5);
+}
+
+@keyframes bd-anim {
+    0%, 100% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+}
+
+.birthday-badge {
+    display: inline-block;
+    background: linear-gradient(135deg, #FFD700, #E91E63);
+    color: white;
+    padding: 3px 10px;
+    border-radius: 10px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    margin-left: 5px;
+    animation: bd-anim 3s ease infinite;
+}
+
+.confetti {
+    position: fixed;
+    top: -10px;
+    z-index: 9999;
+    animation: fall 3s linear infinite;
+    pointer-events: none;
+    font-size: 1.5rem;
+}
+
+@keyframes fall {
+    to {
+        transform: translateY(105vh) rotate(720deg);
+    }
+}
+
+.bd-input-group {
+    margin: 15px 0;
+}
+
+.bd-input-group input {
+    padding: 10px 15px;
+    background: #0a0a0a;
+    border: 2px solid #333;
+    border-radius: 8px;
+    color: white;
+    font-size: 1rem;
+}
+
+/* ===== ТОП ПОЛЬЗОВАТЕЛЕЙ ===== */
+.top-users-page {
+    max-width: 900px;
+    margin: 0 auto;
+}
+
+.top-tabs {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.top-tab {
+    padding: 10px 25px;
+    background: var(--card-bg);
+    border: 1px solid #333;
+    border-radius: 25px;
+    color: #888;
+    cursor: pointer;
+    font-family: 'Bebas Neue', sans-serif;
+    letter-spacing: 2px;
+    transition: 0.3s;
+}
+
+.top-tab.active {
+    background: var(--red);
+    border-color: var(--red);
+    color: white;
+}
+
+.top-users-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.top-user-item {
+    background: var(--card-bg);
+    border: 1px solid #222;
+    border-radius: 12px;
+    padding: 15px 20px;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+.top-user-item:hover {
+    border-color: var(--red);
+    transform: translateX(5px);
+}
+
+.top-position {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 2rem;
+    min-width: 50px;
+    text-align: center;
+    color: #666;
+}
+
+.top-position.gold {
+    color: var(--gold);
+    text-shadow: 0 0 10px var(--gold);
+}
+
+.top-position.silver {
+    color: #C0C0C0;
+    text-shadow: 0 0 10px #C0C0C0;
+}
+
+.top-position.bronze {
+    color: #CD7F32;
+    text-shadow: 0 0 10px #CD7F32;
+}
+
+.top-user-avatar {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background: #333;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+.top-user-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.top-user-info {
+    flex: 1;
+}
+
+.top-user-name {
+    font-weight: 700;
+    font-size: 1rem;
+}
+
+.top-user-stat {
+    color: #888;
+    font-size: 0.85rem;
+}
+
+.top-user-score {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.5rem;
+    color: var(--red);
+    letter-spacing: 2px;
+}
+
+/* ===== НАПОМИНАНИЯ ===== */
+.reminders-page {
+    max-width: 700px;
+    margin: 0 auto;
+}
+
+.reminder-create {
+    background: var(--card-bg);
+    border: 1px solid #333;
+    border-radius: 15px;
+    padding: 25px;
+    margin-bottom: 25px;
+}
+
+.reminder-create h3 {
+    font-family: 'Bebas Neue', sans-serif;
+    letter-spacing: 3px;
+    color: var(--blue);
+    margin-bottom: 15px;
+}
+
+.reminder-time-buttons {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin: 15px 0;
+}
+
+.reminder-time-btn {
+    padding: 10px 20px;
+    background: #0a0a0a;
+    border: 2px solid #333;
+    border-radius: 8px;
+    color: white;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+.reminder-time-btn:hover {
+    border-color: var(--blue);
+}
+
+.reminder-time-btn.active {
+    background: var(--blue);
+    border-color: var(--blue);
+}
+
+.reminder-item {
+    background: var(--card-bg);
+    border: 1px solid #222;
+    border-radius: 12px;
+    padding: 15px 20px;
+    margin-bottom: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-left: 4px solid var(--blue);
+}
+
+.reminder-item.done {
+    opacity: 0.5;
+    border-left-color: #666;
+}
+
+.reminder-info {
+    flex: 1;
+}
+
+.reminder-text {
+    font-weight: 700;
+    margin-bottom: 5px;
+}
+
+.reminder-time {
+    color: var(--blue);
+    font-size: 0.85rem;
+}
+
+.reminder-alarm {
+    position: fixed;
+    top: 20%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: linear-gradient(135deg, #2196F3, #1565C0);
+    padding: 30px 40px;
+    border-radius: 20px;
+    color: white;
+    z-index: 99999;
+    box-shadow: 0 20px 60px rgba(33, 150, 243, 0.5);
+    text-align: center;
+    max-width: 90%;
+    animation: alarm-bounce 0.5s ease;
+}
+
+@keyframes alarm-bounce {
+    0% { transform: translateX(-50%) scale(0.5); opacity: 0; }
+    50% { transform: translateX(-50%) scale(1.1); }
+    100% { transform: translateX(-50%) scale(1); opacity: 1; }
+}
+
+.reminder-alarm-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 2rem;
+    letter-spacing: 5px;
+    margin-bottom: 15px;
+}
+
+.reminder-alarm-close {
+    background: white;
+    color: var(--blue);
+    border: none;
+    padding: 10px 30px;
+    border-radius: 10px;
+    font-family: 'Bebas Neue', sans-serif;
+    letter-spacing: 3px;
+    cursor: pointer;
+    margin-top: 15px;
+    font-size: 1.1rem;
+}
+
+/* ===== СЕЗОННЫЕ ТЕМЫ ===== */
+.season-effect {
+    position: fixed;
+    pointer-events: none;
+    z-index: 1;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+}
+
+.snow, .leaf, .flower, .sun-ray {
+    position: absolute;
+    top: -20px;
+    animation: fall linear infinite;
+    pointer-events: none;
+}
+
+.snow {
+    color: white;
+    font-size: 1.2rem;
+    opacity: 0.7;
+}
+
+.leaf {
+    font-size: 1.5rem;
+    animation-duration: 8s !important;
+}
+
+.flower {
+    font-size: 1.2rem;
+    animation-duration: 12s !important;
+}
+
+.sun-ray {
+    opacity: 0.4;
+    animation: sun-move 10s linear infinite;
+}
+
+@keyframes sun-move {
+    0%, 100% { transform: translate(0, 0); }
+    50% { transform: translate(20px, 20px); }
+}
+
+/* Летний фон */
+body.season-summer {
+    background: linear-gradient(180deg, #FFA500 0%, #FF6347 30%, var(--black) 100%);
+}
+
+/* Осенний фон */
+body.season-autumn {
+    background: linear-gradient(180deg, #8B4513 0%, #D2691E 30%, var(--black) 100%);
+}
+
+/* Зимний фон */
+body.season-winter {
+    background: linear-gradient(180deg, #4682B4 0%, #1e3a5f 30%, var(--black) 100%);
+}
+
+/* Весенний фон */
+body.season-spring {
+    background: linear-gradient(180deg, #FF69B4 0%, #98FB98 30%, var(--black) 100%);
+}
+
+/* ===== НОВЫЕ ВКЛАДКИ В НАВИГАЦИИ ===== */
+.nav-tab .badge-new {
+    background: var(--gold);
+    color: #000;
+    padding: 2px 6px;
+    border-radius: 8px;
+    font-size: 0.7rem;
+    margin-left: 5px;
+}
+/* ===== РАСШИРЕННАЯ СТАТИСТИКА ===== */
+.stats-charts {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 20px;
+    margin: 20px 0;
+}
+
+.chart-card {
+    background: var(--card-bg);
+    border: 1px solid #333;
+    border-radius: 15px;
+    padding: 20px;
+}
+
+.chart-title {
+    font-family: 'Bebas Neue', sans-serif;
+    letter-spacing: 3px;
+    color: var(--gold);
+    margin-bottom: 15px;
+    font-size: 1.1rem;
+}
+
+.chart-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.chart-label {
+    min-width: 100px;
+    color: #ccc;
+    font-size: 0.85rem;
+}
+
+.chart-value {
+    flex: 1;
+    background: #0a0a0a;
+    border-radius: 15px;
+    height: 25px;
+    position: relative;
+    overflow: hidden;
+}
+
+.chart-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--red), var(--gold));
+    border-radius: 15px;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding: 0 10px;
+    color: white;
+    font-weight: 700;
+    font-size: 0.85rem;
+    min-width: 30px;
+    transition: width 0.5s;
+}
+
+.online-indicator {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    background: #4CAF50;
+    border-radius: 50%;
+    margin-right: 5px;
+    animation: pulse-online 2s infinite;
+}
+
+@keyframes pulse-online {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+.online-list {
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.online-user-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px;
+    background: #0a0a0a;
+    border-radius: 8px;
+    margin-bottom: 5px;
+}
+
+/* ===== ПРЕДУПРЕЖДЕНИЯ ===== */
+.warn-badge {
+    display: inline-block;
+    background: #FF9800;
+    color: white;
+    padding: 3px 8px;
+    border-radius: 10px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    margin-left: 5px;
+}
+
+.warn-badge.critical {
+    background: var(--red);
+    animation: pulse-warn 1s infinite;
+}
+
+@keyframes pulse-warn {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+}
+
+.warn-modal {
+    display: none;
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: rgba(0,0,0,0.85);
+    z-index: 99999;
+    align-items: center;
+    justify-content: center;
+}
+
+.warn-modal.show {
+    display: flex;
+}
+
+.warn-modal-box {
+    background: linear-gradient(135deg, #ff9800, #f57c00);
+    padding: 40px;
+    border-radius: 20px;
+    text-align: center;
+    color: white;
+    max-width: 500px;
+    animation: bounce-in 0.5s ease;
+}
+
+@keyframes bounce-in {
+    0% { transform: scale(0.5); opacity: 0; }
+    50% { transform: scale(1.1); }
+    100% { transform: scale(1); opacity: 1; }
+}
+
+.warn-modal-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 2.5rem;
+    letter-spacing: 5px;
+    margin-bottom: 15px;
+}
+
+.warn-modal-close {
+    background: white;
+    color: #f57c00;
+    border: none;
+    padding: 12px 30px;
+    border-radius: 10px;
+    font-family: 'Bebas Neue', sans-serif;
+    letter-spacing: 3px;
+    cursor: pointer;
+    margin-top: 20px;
+    font-size: 1.1rem;
+}
+
+/* ===== УПРАВЛЕНИЕ СЕРИЯМИ ===== */
+.serial-manage-form {
+    background: var(--card-bg);
+    border: 1px solid #333;
+    border-radius: 15px;
+    padding: 25px;
+    margin-bottom: 20px;
+}
+
+.serial-manage-form h4 {
+    font-family: 'Bebas Neue', sans-serif;
+    letter-spacing: 3px;
+    color: var(--gold);
+    margin-bottom: 15px;
+}
+
+.serial-manage-form input {
+    width: 100%;
+    padding: 12px;
+    background: #0a0a0a;
+    border: 2px solid #333;
+    border-radius: 8px;
+    color: white;
+    margin-bottom: 10px;
+}
+
+.episode-manage-row {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    padding: 10px;
+    background: #111;
+    border-radius: 8px;
+    margin-bottom: 5px;
+}
+
+.episode-manage-row input {
+    flex: 1;
+    padding: 8px;
+    background: #0a0a0a;
+    border: 1px solid #333;
+    border-radius: 6px;
+    color: white;
+    margin: 0;
+}
+
+.episode-manage-num {
+    font-family: 'Bebas Neue', sans-serif;
+    color: var(--gold);
+    min-width: 60px;
+}
+
+/* ===== ПРАВА МОДЕРАТОРОВ ===== */
+.perms-modal {
+    display: none;
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: rgba(0,0,0,0.85);
+    z-index: 9000;
+    align-items: center;
+    justify-content: center;
+}
+
+.perms-modal.show {
+    display: flex;
+}
+
+.perms-content {
+    background: var(--dark-gray);
+    border: 1px solid #333;
+    border-radius: 15px;
+    padding: 30px;
+    max-width: 500px;
+    width: 90%;
+}
+
+.perms-title {
+    font-family: 'Bebas Neue', sans-serif;
+    color: var(--red);
+    letter-spacing: 3px;
+    margin-bottom: 20px;
+}
+
+.perm-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px;
+    background: #0a0a0a;
+    border-radius: 8px;
+    margin-bottom: 8px;
+}
+
+.perm-item label {
+    color: white;
+    cursor: pointer;
+    flex: 1;
+}
+
+.perm-toggle {
+    width: 50px;
+    height: 26px;
+    background: #333;
+    border-radius: 13px;
+    position: relative;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+.perm-toggle.active {
+    background: var(--green);
+}
+
+.perm-toggle::after {
+    content: '';
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 20px;
+    height: 20px;
+    background: white;
+    border-radius: 50%;
+    transition: 0.3s;
+}
+
+.perm-toggle.active::after {
+    left: 27px;
+}
+
+/* ===== АНАЛИТИКА ПОВЕДЕНИЯ ===== */
+.user-analytics {
+    background: #0a0a0a;
+    padding: 15px;
+    border-radius: 10px;
+    margin: 10px 0;
+    border-left: 4px solid var(--blue);
+}
+
+.analytics-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 5px 0;
+    color: #ccc;
+    font-size: 0.9rem;
+}
+
+.analytics-label {
+    color: #888;
+}
+
+.analytics-value {
+    color: var(--gold);
+    font-weight: 700;
+}
+
+/* Индикатор онлайн в списке пользователей */
+.online-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    background: #4CAF50;
+    border-radius: 50%;
+    margin-right: 5px;
+    box-shadow: 0 0 5px #4CAF50;
+}
+
+.online-dot.offline {
+    background: #666;
+    box-shadow: none;
+}
