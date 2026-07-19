@@ -2705,12 +2705,13 @@ function updateSerialsFromFirebase(){
                 earlyEps: [],
                 poster: data.poster || null
             });
-        } else {
-            existing.name = data.name;
-            existing.icon = data.icon || '🎬';
-            existing.totalEps = data.episodes ? Object.keys(data.episodes).length : 0;
-            existing.subOnly = data.vip || false;
+                } else {
+            // НЕ обновляем totalEps для существующих сериалов (используем из кода)
+            existing.name = data.name || existing.name;
+            existing.icon = data.icon || existing.icon;
+            existing.subOnly = data.vip !== undefined ? data.vip : existing.subOnly;
             existing.poster = data.poster || existing.poster;
+            // totalEps НЕ трогаем!
         }
     });
 }
@@ -2948,4 +2949,642 @@ if(typeof tryRegister === 'function'){
         setCookie('theded_fb', {email:newUser.email, password:newUser.password}, 30);
         loginSuccess();
     };
+}
+// ============ ФИКС: ЗАЛИТЬ ВСЕ 50 СЕРИЙ В FIREBASE ============
+async function fixFirebaseEpisodes(){
+    if(!currentUser || !currentUser.isAdmin) return;
+    if(!firebaseReady) return;
+
+    // Проверяем есть ли уже серии
+    const existing = await fbReadOnce('serials/the-ded/episodes');
+    if(existing && Object.keys(existing).length >= 50){
+        console.log('Серии уже есть в Firebase');
+        return;
+    }
+
+    console.log('Заливаем 50 серий в Firebase...');
+
+    // Создаём сериал THE DED с серииями
+    const episodes = {};
+    for(let i = 1; i <= 50; i++){
+        episodes[i] = `https://github.com/ivansabaev04-svg/theded-videos/releases/download/v1/${i}.mp4`;
+    }
+
+    await fbWrite('serials/the-ded', {
+        name: 'THE DED',
+        icon: '📁',
+        vip: false,
+        poster: 'https://github.com/ivansabaev04-svg/theded-videos/releases/download/v1/poster.png',
+        createdAt: Date.now(),
+        episodes: episodes
+    });
+
+    console.log('✅ 50 серий залито в Firebase!');
+    alert('✅ Все 50 серий добавлены в Firebase! Обнови страницу.');
+}
+
+// Запустить автоматически при загрузке (только для админа)
+setTimeout(() => {
+    if(currentUser && currentUser.isAdmin){
+        fixFirebaseEpisodes();
+    }
+}, 3000);
+// ============================================
+//  ОПРОСЫ + ОТКАТ НАКРУТКИ
+// ============================================
+
+// ============ ОПРОСЫ В НОВОСТЯХ ============
+function togglePollForm(){
+    const form = document.getElementById('news-poll-form');
+    const checkbox = document.getElementById('news-add-poll');
+    if(!form || !checkbox) return;
+    form.style.display = checkbox.checked ? 'block' : 'none';
+}
+
+function addPollOption(){
+    const container = document.getElementById('poll-options-container');
+    if(!container) return;
+    const count = container.children.length;
+    if(count >= 5){alert('Максимум 5 вариантов!');return;}
+
+    const div = document.createElement('div');
+    div.className = 'poll-option-input';
+    div.innerHTML = `
+        <input type="text" placeholder="Вариант ${count + 1}" maxlength="100">
+        <button onclick="removePollOption(this)">✕</button>
+    `;
+    container.appendChild(div);
+}
+
+function removePollOption(btn){
+    const container = document.getElementById('poll-options-container');
+    if(!container) return;
+    if(container.children.length <= 2){alert('Минимум 2 варианта!');return;}
+    btn.parentElement.remove();
+}
+
+// Переопределяем createNews с поддержкой опросов
+if(typeof createNews === 'function'){
+    const originalCreateNews = createNews;
+    createNews = async function(){
+        if(!currentUser || !currentUser.isAdmin){alert('Только для админов!');return;}
+
+        const title = document.getElementById('news-title-input').value.trim();
+        const text = document.getElementById('news-text-input').value.trim();
+        const important = document.getElementById('news-important').checked;
+        const addPoll = document.getElementById('news-add-poll').checked;
+
+        if(!title){alert('Введи заголовок!');return;}
+        if(!text){alert('Введи текст!');return;}
+
+        const news = {
+            title: title,
+            text: text,
+            important: important,
+            author: currentUser.name,
+            authorEmail: currentUser.email,
+            date: new Date().toLocaleString('ru-RU'),
+            timestamp: Date.now()
+        };
+
+        // Добавляем опрос если нужно
+        if(addPoll){
+            const question = document.getElementById('poll-question-input').value.trim();
+            if(!question){alert('Введи вопрос опроса!');return;}
+
+            const optionInputs = document.querySelectorAll('#poll-options-container .poll-option-input input');
+            const options = [];
+            optionInputs.forEach(inp => {
+                const val = inp.value.trim();
+                if(val) options.push(val);
+            });
+
+            if(options.length < 2){alert('Нужно минимум 2 варианта в опросе!');return;}
+
+            news.poll = {
+                question: question,
+                options: options,
+                votes: {} // {optionIndex: {userEmail: true}}
+            };
+        }
+
+        const newRef = window.fbPush(window.fbRef(window.fbDb, 'news'));
+        await window.fbSet(newRef, news);
+
+        // Очищаем форму
+        document.getElementById('news-title-input').value = '';
+        document.getElementById('news-text-input').value = '';
+        document.getElementById('news-important').checked = false;
+        document.getElementById('news-add-poll').checked = false;
+        document.getElementById('news-poll-form').style.display = 'none';
+        document.getElementById('poll-question-input').value = '';
+
+        // Сбрасываем опции опроса
+        const container = document.getElementById('poll-options-container');
+        if(container){
+            container.innerHTML = `
+                <div class="poll-option-input">
+                    <input type="text" placeholder="Вариант 1" maxlength="100">
+                    <button onclick="removePollOption(this)">✕</button>
+                </div>
+                <div class="poll-option-input">
+                    <input type="text" placeholder="Вариант 2" maxlength="100">
+                    <button onclick="removePollOption(this)">✕</button>
+                </div>
+            `;
+        }
+
+        alert('✅ Новость опубликована!');
+    };
+}
+
+// Голосование в опросе
+async function votePoll(newsId, optionIndex){
+    if(!currentUser){alert('Войди чтобы проголосовать!');return;}
+
+    const news = allNews[newsId];
+    if(!news || !news.poll){return;}
+
+    const userKey = emailToKey(currentUser.email);
+    const votes = news.poll.votes || {};
+
+    // Проверяем не голосовал ли уже
+    let alreadyVoted = false;
+    Object.values(votes).forEach(voters => {
+        if(voters && voters[userKey]) alreadyVoted = true;
+    });
+
+    if(alreadyVoted){
+        alert('❌ Ты уже голосовал в этом опросе!');
+        return;
+    }
+
+    // Голосуем
+    if(!votes[optionIndex]) votes[optionIndex] = {};
+    votes[optionIndex][userKey] = true;
+
+    await fbUpdatePath(`news/${newsId}/poll/votes`, votes);
+}
+
+// Переопределяем renderNews для отображения опросов
+if(typeof renderNews === 'function'){
+    const originalRenderNews = renderNews;
+    renderNews = function(){
+        const list = document.getElementById('news-list');
+        if(!list) return;
+
+        const createForm = document.getElementById('news-create-form');
+        if(createForm && currentUser){
+            createForm.style.display = currentUser.isAdmin ? 'block' : 'none';
+        }
+
+        const arr = Object.entries(allNews)
+            .map(([id, n]) => ({...n, id}))
+            .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+
+        if(!arr.length){
+            list.innerHTML = '<p style="color:#555;text-align:center;padding:40px;">Пока нет новостей 📭</p>';
+            return;
+        }
+
+        list.innerHTML = '';
+        arr.forEach(n => {
+            const div = document.createElement('div');
+            div.className = 'news-item' + (n.important ? ' important' : '');
+
+            let pollHTML = '';
+            if(n.poll){
+                const userKey = currentUser ? emailToKey(currentUser.email) : '';
+                const votes = n.poll.votes || {};
+
+                // Считаем общее количество голосов
+                let totalVotes = 0;
+                let myVote = -1;
+                Object.entries(votes).forEach(([optIdx, voters]) => {
+                    if(voters){
+                        const voterCount = Object.keys(voters).length;
+                        totalVotes += voterCount;
+                        if(voters[userKey]) myVote = parseInt(optIdx);
+                    }
+                });
+
+                const hasVoted = myVote >= 0;
+
+                pollHTML = `
+                    <div class="poll-container">
+                        <div class="poll-question">📊 ${n.poll.question.replace(/</g,'&lt;')}</div>
+                        ${n.poll.options.map((opt, i) => {
+                            const voterCount = votes[i] ? Object.keys(votes[i]).length : 0;
+                            const percent = totalVotes > 0 ? Math.round((voterCount / totalVotes) * 100) : 0;
+                            const isVoted = myVote === i;
+                            return `
+                                <div class="poll-option ${isVoted ? 'voted' : ''}" onclick="${hasVoted ? '' : `votePoll('${n.id}', ${i})`}">
+                                    ${hasVoted ? `<div class="poll-option-fill" style="width:${percent}%;"></div>` : ''}
+                                    <div class="poll-option-content">
+                                        <div class="poll-option-text">
+                                            ${isVoted ? '<span class="poll-check-mark">✓</span>' : ''}
+                                            ${opt.replace(/</g,'&lt;')}
+                                        </div>
+                                        ${hasVoted ? `<div class="poll-option-stats">${percent}% (${voterCount})</div>` : ''}
+                                    </div>
+                                </div>
+                            `;
+                        }).join('')}
+                        <div class="poll-total">👥 Проголосовало: ${totalVotes} ${hasVoted ? '' : '• Кликни чтобы проголосовать'}</div>
+                    </div>
+                `;
+            }
+
+            div.innerHTML = `
+                <div class="news-item-header">
+                    <div class="news-item-title">${n.important ? '⭐ ' : ''}${n.title.replace(/</g,'&lt;')}</div>
+                    <div class="news-item-date">${n.date}</div>
+                </div>
+                <div class="news-item-text">${n.text.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>
+                ${pollHTML}
+                <div class="news-item-author">— ${n.author}</div>
+                ${currentUser && currentUser.isAdmin ? `<button class="news-delete-btn" onclick="deleteNews('${n.id}')">🗑</button>` : ''}
+            `;
+            list.appendChild(div);
+        });
+
+        // Отмечаем прочитанные
+        checkedNews = {};
+        arr.forEach(n => { checkedNews[n.id] = true; });
+        if(currentUser){
+            localStorage.setItem('checkedNews_' + emailToKey(currentUser.email), JSON.stringify(checkedNews));
+        }
+        updateNewsBadge();
+    };
+}
+
+// ============ ОПРОСЫ В ЧАТАХ ============
+function openChatPollModal(){
+    document.getElementById('chat-poll-question').value = '';
+    // Сбрасываем варианты
+    const container = document.getElementById('chat-poll-options-container');
+    if(container){
+        container.innerHTML = `
+            <div class="poll-option-input">
+                <input type="text" placeholder="Вариант 1" maxlength="100">
+                <button onclick="removeChatPollOption(this)">✕</button>
+            </div>
+            <div class="poll-option-input">
+                <input type="text" placeholder="Вариант 2" maxlength="100">
+                <button onclick="removeChatPollOption(this)">✕</button>
+            </div>
+        `;
+    }
+    document.getElementById('chat-poll-modal').classList.add('show');
+}
+
+function closeChatPollModal(){
+    document.getElementById('chat-poll-modal').classList.remove('show');
+}
+
+function addChatPollOption(){
+    const container = document.getElementById('chat-poll-options-container');
+    if(!container) return;
+    const count = container.children.length;
+    if(count >= 5){alert('Максимум 5 вариантов!');return;}
+
+    const div = document.createElement('div');
+    div.className = 'poll-option-input';
+    div.innerHTML = `
+        <input type="text" placeholder="Вариант ${count + 1}" maxlength="100">
+        <button onclick="removeChatPollOption(this)">✕</button>
+    `;
+    container.appendChild(div);
+}
+
+function removeChatPollOption(btn){
+    const container = document.getElementById('chat-poll-options-container');
+    if(!container) return;
+    if(container.children.length <= 2){alert('Минимум 2 варианта!');return;}
+    btn.parentElement.remove();
+}
+
+async function sendChatPoll(){
+    if(!currentUser){alert('Войди!');return;}
+    if(currentUser.banned){alert('Заблокирован!');return;}
+    if(!currentChatId){alert('Открой чат!');return;}
+
+    const question = document.getElementById('chat-poll-question').value.trim();
+    if(!question){alert('Введи вопрос!');return;}
+
+    const optionInputs = document.querySelectorAll('#chat-poll-options-container .poll-option-input input');
+    const options = [];
+    optionInputs.forEach(inp => {
+        const val = inp.value.trim();
+        if(val) options.push(val);
+    });
+
+    if(options.length < 2){alert('Минимум 2 варианта!');return;}
+
+    let msg;
+    if(currentChatType === 'group'){
+        msg = {
+            from: currentUser.email,
+            authorName: currentUser.name,
+            text: '',
+            type: 'poll',
+            poll: {
+                question: question,
+                options: options,
+                votes: {}
+            },
+            date: new Date().toLocaleString('ru-RU'),
+            timestamp: Date.now(),
+            readBy: {[emailToKey(currentUser.email)]: true},
+            reactions: {}
+        };
+    } else {
+        if(!currentChatUser){alert('Ошибка!');return;}
+        msg = {
+            from: currentUser.email,
+            to: currentChatUser.email,
+            text: '',
+            type: 'poll',
+            poll: {
+                question: question,
+                options: options,
+                votes: {}
+            },
+            date: new Date().toLocaleString('ru-RU'),
+            timestamp: Date.now(),
+            read: false,
+            reactions: {}
+        };
+    }
+
+    const newRef = window.fbPush(window.fbRef(window.fbDb, `messages/${currentChatId}`));
+    await window.fbSet(newRef, msg);
+
+    closeChatPollModal();
+
+    setTimeout(() => {
+        const area = document.getElementById('chat-messages-area');
+        if(area) area.scrollTop = area.scrollHeight;
+    }, 100);
+}
+
+async function voteChatPoll(msgId, optionIndex){
+    if(!currentUser){alert('Войди!');return;}
+    if(!currentChatId){return;}
+
+    const messages = allMessages[currentChatId] || {};
+    const msg = messages[msgId];
+    if(!msg || !msg.poll){return;}
+
+    const userKey = emailToKey(currentUser.email);
+    const votes = msg.poll.votes || {};
+
+    // Проверяем не голосовал ли уже
+    let alreadyVoted = false;
+    Object.values(votes).forEach(voters => {
+        if(voters && voters[userKey]) alreadyVoted = true;
+    });
+
+    if(alreadyVoted){
+        alert('❌ Ты уже голосовал!');
+        return;
+    }
+
+    if(!votes[optionIndex]) votes[optionIndex] = {};
+    votes[optionIndex][userKey] = true;
+
+    await fbUpdatePath(`messages/${currentChatId}/${msgId}/poll/votes`, votes);
+}
+
+// Обновляем renderChat для отображения опросов
+if(typeof renderChat === 'function'){
+    const originalRenderChat = renderChat;
+    renderChat = function(){
+        if(!currentChatId) return;
+        const area = document.getElementById('chat-messages-area');
+        if(!area) return;
+        const messages = allMessages[currentChatId] || {};
+        const arr = Object.entries(messages).map(([id, m]) => ({...m, id})).sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
+        const wasScrolledToBottom = area.scrollTop + area.clientHeight >= area.scrollHeight - 50;
+        area.innerHTML = '';
+
+        arr.forEach(m => {
+            const div = document.createElement('div');
+            const isMine = m.from === currentUser.email;
+            div.className = 'msg-bubble ' + (isMine ? 'mine' : 'theirs');
+            div.id = 'msg-' + m.id;
+
+            let authorBlock = '';
+            if(currentChatType === 'group' && !isMine){
+                authorBlock = `<div class="chat-msg-author" style="cursor:pointer;color:var(--red);" onclick="openUserProfile('${m.from}')">${m.authorName || '?'}</div>`;
+            }
+
+            let replyBlock = '';
+            if(m.replyTo){
+                replyBlock = `
+                    <div class="msg-reply-preview" onclick="scrollToMessage('${m.replyTo.id}')">
+                        <div class="msg-reply-preview-author">↩️ ${m.replyTo.author}</div>
+                        <div class="msg-reply-preview-text">${(m.replyTo.text || '').replace(/</g,'&lt;').substring(0, 50)}</div>
+                    </div>
+                `;
+            }
+
+            let contentBlock = '';
+            const msgType = m.type || 'text';
+
+            if(msgType === 'photo' && m.photo){
+                contentBlock = `<img src="${m.photo}" class="msg-photo" onclick="window.open('${m.photo}','_blank')" alt="Фото">`;
+            } else if(msgType === 'voice' && m.voice){
+                contentBlock = `
+                    <div class="msg-voice-container" style="min-width:200px;">
+                        <audio controls style="width:100%;max-width:250px;height:35px;" src="${m.voice}"></audio>
+                    </div>
+                `;
+            } else if(msgType === 'sticker' && m.sticker){
+                contentBlock = `<div class="msg-sticker">${m.sticker}</div>`;
+            } else if(msgType === 'call' && m.callUrl){
+                const callIcon = m.callType === 'video' ? '📹' : '📞';
+                const callText = m.callType === 'video' ? 'ВИДЕОЗВОНОК' : 'ЗВОНОК';
+                contentBlock = `
+                    <a href="${m.callUrl}" target="_blank" class="msg-call ${m.callType === 'video' ? 'video' : ''}">
+                        ${callIcon} ${callText}<br>
+                        <span style="font-size:0.75rem;opacity:0.9;">Нажми чтобы присоединиться</span>
+                    </a>
+                `;
+            } else if(msgType === 'poll' && m.poll){
+                // Опрос в чате
+                const userKey = emailToKey(currentUser.email);
+                const votes = m.poll.votes || {};
+                let totalVotes = 0;
+                let myVote = -1;
+                Object.entries(votes).forEach(([optIdx, voters]) => {
+                    if(voters){
+                        totalVotes += Object.keys(voters).length;
+                        if(voters[userKey]) myVote = parseInt(optIdx);
+                    }
+                });
+                const hasVoted = myVote >= 0;
+
+                contentBlock = `
+                    <div class="msg-poll">
+                        <div class="msg-poll-question">📊 ${m.poll.question.replace(/</g,'&lt;')}</div>
+                        ${m.poll.options.map((opt, i) => {
+                            const voterCount = votes[i] ? Object.keys(votes[i]).length : 0;
+                            const percent = totalVotes > 0 ? Math.round((voterCount / totalVotes) * 100) : 0;
+                            const isVoted = myVote === i;
+                            return `
+                                <div class="msg-poll-option ${isVoted ? 'voted' : ''}" onclick="${hasVoted ? '' : `voteChatPoll('${m.id}', ${i})`}">
+                                    ${hasVoted ? `<div class="msg-poll-option-fill" style="width:${percent}%;"></div>` : ''}
+                                    <div class="msg-poll-option-text">
+                                        <span>${isVoted ? '✓ ' : ''}${opt.replace(/</g,'&lt;')}</span>
+                                        ${hasVoted ? `<span>${percent}%</span>` : ''}
+                                    </div>
+                                </div>
+                            `;
+                        }).join('')}
+                        <div style="color:#888;font-size:0.75rem;margin-top:8px;">👥 ${totalVotes} ${hasVoted ? 'голосов' : '• кликни чтобы проголосовать'}</div>
+                    </div>
+                `;
+            } else {
+                contentBlock = `<div class="msg-text">${(m.text || '').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>`;
+            }
+
+            let reactionsBlock = '';
+            if(m.reactions && Object.keys(m.reactions).length > 0){
+                reactionsBlock = '<div class="msg-reactions">';
+                Object.entries(m.reactions).forEach(([emoji, users]) => {
+                    const count = Object.keys(users).length;
+                    if(count === 0) return;
+                    const isMineReaction = currentUser && users[emailToKey(currentUser.email)];
+                    reactionsBlock += `<div class="reaction-badge ${isMineReaction ? 'mine' : ''}" onclick="addReaction('${m.id}','${emoji}','${currentChatId}')">${emoji} ${count}</div>`;
+                });
+                reactionsBlock += '</div>';
+            }
+
+            const actionsBtn = `
+                <button class="msg-actions-btn" onclick="toggleReactionPicker('${m.id}')">😊</button>
+                <div class="reaction-picker" id="picker-${m.id}">
+                    <button class="reaction-emoji-btn" onclick="addReaction('${m.id}','❤️','${currentChatId}')">❤️</button>
+                    <button class="reaction-emoji-btn" onclick="addReaction('${m.id}','😂','${currentChatId}')">😂</button>
+                    <button class="reaction-emoji-btn" onclick="addReaction('${m.id}','👍','${currentChatId}')">👍</button>
+                    <button class="reaction-emoji-btn" onclick="addReaction('${m.id}','🔥','${currentChatId}')">🔥</button>
+                    <button class="reaction-emoji-btn" onclick="addReaction('${m.id}','😢','${currentChatId}')">😢</button>
+                    <button class="reaction-emoji-btn" onclick="addReaction('${m.id}','💯','${currentChatId}')">💯</button>
+                    <button class="reaction-emoji-btn" onclick="replyToMessage('${m.id}','${currentChatId}')">↩️</button>
+                </div>
+            `;
+
+            div.innerHTML = `
+                ${authorBlock}
+                ${replyBlock}
+                ${contentBlock}
+                <div class="msg-time">${m.date}</div>
+                ${reactionsBlock}
+                ${actionsBtn}
+            `;
+
+            area.appendChild(div);
+        });
+
+        if(wasScrolledToBottom){
+            area.scrollTop = area.scrollHeight;
+        }
+    };
+}
+
+// Добавляем кнопку опроса в чат автоматически
+setInterval(() => {
+    const inputArea = document.querySelector('.chat-input-area');
+    if(!inputArea) return;
+    if(inputArea.querySelector('.chat-poll-btn')) return;
+    if(!currentChatId) return;
+
+    const pollBtn = document.createElement('button');
+    pollBtn.className = 'chat-poll-btn';
+    pollBtn.innerHTML = '📊';
+    pollBtn.title = 'Создать опрос';
+    pollBtn.onclick = openChatPollModal;
+
+    const sendBtn = inputArea.querySelector('.chat-send');
+    if(sendBtn){
+        inputArea.insertBefore(pollBtn, sendBtn);
+    } else {
+        inputArea.appendChild(pollBtn);
+    }
+}, 1000);
+
+// ============ ОТКАТ НАКРУТКИ ============
+
+async function resetViewsForEpisode(){
+    if(!currentUser || !currentUser.isAdmin){alert('Только для админа!');return;}
+    const epNum = prompt('Введи номер серии (1-50):');
+    if(!epNum) return;
+    const num = parseInt(epNum);
+    if(!num || num < 1 || num > 50){alert('Неверный номер!');return;}
+
+    if(!confirm(`Сбросить просмотры у серии ${num}?`)) return;
+
+    await fbWrite(`views/the-ded_${num}`, 0);
+    alert(`✅ Просмотры серии ${num} сброшены!`);
+}
+
+async function resetLikesForEpisode(){
+    if(!currentUser || !currentUser.isAdmin){alert('Только для админа!');return;}
+    const epNum = prompt('Введи номер серии (1-50):');
+    if(!epNum) return;
+    const num = parseInt(epNum);
+    if(!num || num < 1 || num > 50){alert('Неверный номер!');return;}
+
+    if(!confirm(`Сбросить лайки у серии ${num}?`)) return;
+
+    await fbWrite(`likes/the-ded_${num}`, []);
+    alert(`✅ Лайки серии ${num} сброшены!`);
+}
+
+async function resetFollowersForUser(){
+    if(!currentUser || !currentUser.isAdmin){alert('Только для админа!');return;}
+    const email = prompt('Введи email пользователя:');
+    if(!email) return;
+
+    const user = allUsers[emailToKey(email.trim())];
+    if(!user){alert('Пользователь не найден!');return;}
+
+    if(!confirm(`Сбросить накрученных подписчиков у ${user.name}?\n(Реальные подписчики останутся)`)) return;
+
+    await fbUpdatePath(`users/${emailToKey(user.email)}`, {extraFollowers: 0});
+    alert(`✅ Накрученные подписчики у ${user.name} сброшены!`);
+}
+
+async function resetAllViews(){
+    if(!currentUser || !currentUser.isAdmin){alert('Только для админа!');return;}
+    if(!confirm('⚠️ ВНИМАНИЕ! Это сбросит ВСЕ просмотры у ВСЕХ серий!\n\nПродолжить?')) return;
+    if(!confirm('Точно? Это НЕЛЬЗЯ отменить!')) return;
+
+    await fbWrite('views', {});
+    alert('💥 Все просмотры сброшены!');
+}
+
+async function resetAllLikes(){
+    if(!currentUser || !currentUser.isAdmin){alert('Только для админа!');return;}
+    if(!confirm('⚠️ ВНИМАНИЕ! Это сбросит ВСЕ лайки у ВСЕХ серий!\n\nПродолжить?')) return;
+    if(!confirm('Точно? Это НЕЛЬЗЯ отменить!')) return;
+
+    await fbWrite('likes', {});
+    alert('💥 Все лайки сброшены!');
+}
+
+async function resetAllExtraFollowers(){
+    if(!currentUser || !currentUser.isAdmin){alert('Только для админа!');return;}
+    if(!confirm('⚠️ ВНИМАНИЕ! Это сбросит ВСЕХ накрученных подписчиков у ВСЕХ юзеров!\n\nРеальные подписчики останутся.\n\nПродолжить?')) return;
+
+    const updates = {};
+    Object.keys(allUsers).forEach(key => {
+        updates[`users/${key}/extraFollowers`] = 0;
+    });
+
+    for(const path in updates){
+        await fbWrite(path, 0);
+    }
+
+    alert('💥 Накрученные подписчики сброшены у всех!');
 }
