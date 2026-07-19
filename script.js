@@ -464,9 +464,26 @@ function renderComments(){if(!currentSerial||!currentEpList[currentEpIndex])retu
 
 // ============ АВТОРИЗАЦИЯ ============
 async function checkSession(){let saved=getCookie('theded_fb');if(!saved){const ss=sessionStorage.getItem('theded_fb');if(ss)saved=JSON.parse(ss);}if(saved){const found=await getUserByEmail(saved.email);if(found && found.password===saved.password){if(found.banned){alert('🚫 Заблокирован!');deleteCookie('theded_fb');sessionStorage.removeItem('theded_fb');return;}currentUser=found;ensureFields();loginSuccess();}}}
-function ensureFields(){if(!currentUser.avatar)currentUser.avatar='👤';if(!currentUser.avatarImg)currentUser.avatarImg='';if(!currentUser.bio)currentUser.bio='';if(!currentUser.wallet)currentUser.wallet={RUB:0,USD:0,EUR:0,KZT:0};if(!currentUser.currency)currentUser.currency='RUB';if(currentUser.subscription===undefined)currentUser.subscription=false;if(currentUser.subscription===true)currentUser.subscription='basic';if(currentUser.banned===undefined)currentUser.banned=false;if(!currentUser.theme)currentUser.theme='default';if(currentUser.tempSubUntil===undefined)currentUser.tempSubUntil=0;if(!currentUser.nickColor)currentUser.nickColor='default';if(currentUser.extraFollowers===undefined)currentUser.extraFollowers=0;if(currentUser.email===ADMIN_EMAIL){currentUser.subscription='pro';currentUser.isAdmin=true;}saveCurrentUserToFirebase();}
+function ensureFields(){
+    if(!currentUser.avatar)currentUser.avatar='👤';
+    if(!currentUser.avatarImg)currentUser.avatarImg='';
+    if(!currentUser.bio)currentUser.bio='';
+    if(!currentUser.wallet)currentUser.wallet={RUB:0,USD:0,EUR:0,KZT:0};
+    if(!currentUser.currency)currentUser.currency='RUB';
+    if(currentUser.subscription===undefined)currentUser.subscription=false;
+    if(currentUser.subscription===true)currentUser.subscription='basic';
+    if(currentUser.banned===undefined)currentUser.banned=false;
+    if(!currentUser.theme)currentUser.theme='default';
+    if(currentUser.tempSubUntil===undefined)currentUser.tempSubUntil=0;
+    if(!currentUser.nickColor)currentUser.nickColor='default';
+    if(currentUser.extraFollowers===undefined)currentUser.extraFollowers=0;
+    if(!currentUser.birthday)currentUser.birthday='';
+    if(!currentUser.lastBirthdayGift)currentUser.lastBirthdayGift='';
+    if(currentUser.email===ADMIN_EMAIL){currentUser.subscription='pro';currentUser.isAdmin=true;}
+    saveCurrentUserToFirebase();
+}
 async function tryLogin(){const email=document.getElementById('login-email').value.trim().toLowerCase();const password=document.getElementById('login-password').value;const remember=document.getElementById('remember-check').checked;const user=await getUserByEmail(email);document.getElementById('login-error').classList.remove('show');document.getElementById('banned-error').classList.remove('show');if(user && user.password===password){if(user.banned){document.getElementById('banned-error').classList.add('show');return;}currentUser=user;ensureFields();if(remember)setCookie('theded_fb',{email:user.email,password:user.password},30);else sessionStorage.setItem('theded_fb',JSON.stringify({email:user.email,password:user.password}));loginSuccess();}else{const err=document.getElementById('login-error');err.classList.add('show');err.style.animation='none';setTimeout(()=>err.style.animation='shake 0.4s ease',10);}}
-async function tryRegister(){const name=document.getElementById('reg-name').value.trim();const email=document.getElementById('reg-email').value.trim().toLowerCase();const password=document.getElementById('reg-password').value;if(!name||!email||!password){showRegError('❌ Заполни всё');return;}if(!email.includes('@')||!email.includes('.')){showRegError('❌ Правильный email');return;}if(password.length<4){showRegError('❌ Минимум 4 символа');return;}const existing=await getUserByEmail(email);if(existing){showRegError('❌ Email занят');return;}const newUser={email,password,name,avatar:'👤',avatarImg:'',bio:'',wallet:{RUB:0,USD:0,EUR:0,KZT:0},currency:'RUB',subscription:false,isAdmin:false,banned:false,theme:'default',tempSubUntil:0,nickColor:'default',extraFollowers:0};await fbWrite(`users/${emailToKey(email)}`,newUser);currentUser=newUser;setCookie('theded_fb',{email:newUser.email,password:newUser.password},30);loginSuccess();}
+async function tryRegister(){const name=document.getElementById('reg-name').value.trim();const email=document.getElementById('reg-email').value.trim().toLowerCase();const password=document.getElementById('reg-password').value;if(!name||!email||!password){showRegError('❌ Заполни всё');return;}if(!email.includes('@')||!email.includes('.')){showRegError('❌ Правильный email');return;}if(password.length<4){showRegError('❌ Минимум 4 символа');return;}const existing=await getUserByEmail(email);if(existing){showRegError('❌ Email занят');return;}    const newUser={email,password,name,avatar:'👤',avatarImg:'',bio:'',wallet:{RUB:0,USD:0,EUR:0,KZT:0},currency:'RUB',subscription:false,isAdmin:false,banned:false,theme:'default',tempSubUntil:0,nickColor:'default',extraFollowers:0,birthday:'',lastBirthdayGift:''};;await fbWrite(`users/${emailToKey(email)}`,newUser);currentUser=newUser;setCookie('theded_fb',{email:newUser.email,password:newUser.password},30);loginSuccess();}
 function showRegError(msg){const e=document.getElementById('reg-error');e.textContent=msg;e.classList.add('show');e.style.animation='none';setTimeout(()=>e.style.animation='shake 0.4s ease',10);}
 function loginSuccess(){document.getElementById('login-screen').classList.add('hidden');updateUserNameDisplay();document.getElementById('welcome-name').textContent=currentUser.name;if(currentUser.isAdmin||currentUser.email===ADMIN_EMAIL||currentUser.subscription==='rapport')document.getElementById('btn-admin').style.display='inline-block';loadUserTheme();updateAvatarDisplay();updateWalletDisplay();updateSubDisplay();renderFolders();renderThemes();renderNickColors();updateFollowCounts();if(currentUser.tempSubUntil&&currentUser.tempSubUntil>Date.now())startPromoTimer();if(!hasActiveSubscription())setTimeout(()=>document.getElementById('sub-ad').classList.add('show'),1000);updateMessagesBadge();}
 function updateUserNameDisplay(){const nameEl=document.getElementById('user-name-display');nameEl.textContent=currentUser.name;nameEl.className='user-name';if(hasGlowingNick())nameEl.classList.add('pro-glow');const colId=currentUser.nickColor||'default';if(colId!=='default'){const col=NICK_COLORS.find(c=>c.id===colId);if(col){if(col.color==='rainbow'){nameEl.style.background='linear-gradient(135deg,#ff0000,#ff7f00,#ffff00,#00ff00,#0000ff,#4b0082,#9400d3)';nameEl.style.webkitBackgroundClip='text';nameEl.style.backgroundClip='text';nameEl.style.webkitTextFillColor='transparent';}else{nameEl.style.color=col.color;nameEl.style.textShadow=`0 0 10px ${col.color}`;}}}else{nameEl.style.color='';nameEl.style.textShadow='';nameEl.style.background='';}}
@@ -524,7 +541,30 @@ async function playVideo(idx){currentEpIndex=idx;const ep=currentEpList[idx];sho
 function changeEp(dir){const newIdx=currentEpIndex+dir;if(newIdx>=0&&newIdx<currentEpList.length){const ep=currentEpList[newIdx];if(ep.early&&!hasActiveSubscription()){alert('По подписке!');return;}playVideo(newIdx);}}
 document.getElementById('v-player').addEventListener('ended',()=>{if(currentEpIndex<currentEpList.length-1)changeEp(1);});
 
-function showPage(pageId){document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));document.getElementById('page-'+pageId).classList.add('active');document.querySelectorAll('.nav-tab').forEach(b=>b.classList.remove('active'));const btn=document.getElementById('btn-'+pageId);if(btn)btn.classList.add('active');if(pageId!=='player')document.getElementById('v-player').pause();if(pageId==='profile'){updateAvatarDisplay();updateWalletDisplay();renderThemes();renderNickColors();updateFollowCounts();}if(pageId==='support')renderMyTickets();if(pageId==='messages')renderChatsList();if(pageId==='home')document.getElementById('back-btn').style.display='none';window.scrollTo({top:0,behavior:'smooth'});}
+function showPage(pageId){
+    document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+    const pageEl = document.getElementById('page-'+pageId);
+    if(pageEl) pageEl.classList.add('active');
+    document.querySelectorAll('.nav-tab').forEach(b=>b.classList.remove('active'));
+    const btn=document.getElementById('btn-'+pageId);
+    if(btn)btn.classList.add('active');
+    if(pageId!=='player'){
+        const vp = document.getElementById('v-player');
+        if(vp) vp.pause();
+    }
+    if(pageId==='profile'){updateAvatarDisplay();updateWalletDisplay();renderThemes();renderNickColors();updateFollowCounts();}
+    if(pageId==='support')renderMyTickets();
+    if(pageId==='messages')renderChatsList();
+    if(pageId==='news')renderNews();
+    if(pageId==='top')renderTopUsers();
+    if(pageId==='reminders')renderReminders();
+    if(pageId==='home'){
+        const backBtn = document.getElementById('back-btn');
+        if(backBtn) backBtn.style.display='none';
+        checkBirthday();
+    }
+    window.scrollTo({top:0,behavior:'smooth'});
+}
 // ============ ЧАТЫ ============
 function getChatId(user1,user2){const sorted=[user1,user2].sort();return emailToKey(sorted[0])+'__'+emailToKey(sorted[1]);}
 
@@ -1621,3 +1661,1291 @@ openAdmin = function(){
     renderModerationList();
     updateModerationBadge();
 };
+// ============================================
+//  НОВЫЕ ФИЧИ: НОВОСТИ, ДР, ТОП, НАПОМИНАНИЯ, СЕЗОНЫ, ЗВОНКИ
+// ============================================
+
+let allNews = {};
+let allReminders = {};
+let selectedReminderMinutes = null;
+let currentTopTab = 'comments';
+let checkedNews = {};
+
+// ============ СЛУШАТЕЛИ ФАЙРБЕЙС ============
+function setupNewsListener(){
+    if(firebaseReady){
+        fbListen('news',(data)=>{
+            allNews = data || {};
+            if(typeof renderNews==='function')renderNews();
+            if(typeof updateNewsBadge==='function')updateNewsBadge();
+        });
+    }else{
+        setTimeout(setupNewsListener,500);
+    }
+}
+setupNewsListener();
+
+function setupRemindersListener(){
+    if(firebaseReady){
+        fbListen('reminders',(data)=>{
+            allReminders = data || {};
+            if(typeof renderReminders==='function')renderReminders();
+            if(typeof checkReminders==='function')checkReminders();
+        });
+    }else{
+        setTimeout(setupRemindersListener,500);
+    }
+}
+setupRemindersListener();
+
+// ============ ЗВОНКИ ЧЕРЕЗ JITSI ============
+async function startCall(target, chatType, isVideo){
+    if(!currentUser){alert('Войди!');return;}
+    if(currentUser.banned){alert('Заблокирован!');return;}
+
+    // Генерируем уникальную комнату
+    const roomName = 'THEDED_' + Date.now() + '_' + Math.random().toString(36).substring(7);
+    const callType = isVideo ? 'video' : 'voice';
+    const callTypeText = isVideo ? '📹 Видеозвонок' : '📞 Голосовой звонок';
+    const jitsiUrl = `https://meet.jit.si/${roomName}`;
+
+    // Отправляем сообщение с приглашением
+    let chatId;
+    let msg;
+
+    if(chatType === 'group'){
+        chatId = 'group_' + target;
+        msg = {
+            from: currentUser.email,
+            authorName: currentUser.name,
+            text: '',
+            type: 'call',
+            callType: callType,
+            callUrl: jitsiUrl,
+            callActive: true,
+            date: new Date().toLocaleString('ru-RU'),
+            timestamp: Date.now(),
+            readBy: {[emailToKey(currentUser.email)]: true},
+            reactions: {}
+        };
+    } else {
+        chatId = getChatId(currentUser.email, target);
+        msg = {
+            from: currentUser.email,
+            to: target,
+            text: '',
+            type: 'call',
+            callType: callType,
+            callUrl: jitsiUrl,
+            callActive: true,
+            date: new Date().toLocaleString('ru-RU'),
+            timestamp: Date.now(),
+            read: false,
+            reactions: {}
+        };
+    }
+
+    const newRef = window.fbPush(window.fbRef(window.fbDb, `messages/${chatId}`));
+    await window.fbSet(newRef, msg);
+
+    // Открываем звонок в новой вкладке
+    window.open(jitsiUrl, '_blank');
+}
+
+function joinCall(url){
+    window.open(url, '_blank');
+}
+
+// ============ НОВОСТИ ============
+async function createNews(){
+    if(!currentUser || !currentUser.isAdmin){alert('Только для админов!');return;}
+
+    const title = document.getElementById('news-title-input').value.trim();
+    const text = document.getElementById('news-text-input').value.trim();
+    const important = document.getElementById('news-important').checked;
+
+    if(!title){alert('Введи заголовок!');return;}
+    if(!text){alert('Введи текст!');return;}
+
+    const news = {
+        title: title,
+        text: text,
+        important: important,
+        author: currentUser.name,
+        authorEmail: currentUser.email,
+        date: new Date().toLocaleString('ru-RU'),
+        timestamp: Date.now()
+    };
+
+    const newRef = window.fbPush(window.fbRef(window.fbDb, 'news'));
+    await window.fbSet(newRef, news);
+
+    document.getElementById('news-title-input').value = '';
+    document.getElementById('news-text-input').value = '';
+    document.getElementById('news-important').checked = false;
+
+    alert('✅ Новость опубликована!');
+}
+
+async function deleteNews(id){
+    if(!confirm('Удалить новость?'))return;
+    await fbRemovePath(`news/${id}`);
+    alert('✅ Удалено!');
+}
+
+function renderNews(){
+    const list = document.getElementById('news-list');
+    if(!list)return;
+
+    // Показываем/скрываем форму создания
+    const createForm = document.getElementById('news-create-form');
+    if(createForm && currentUser){
+        createForm.style.display = currentUser.isAdmin ? 'block' : 'none';
+    }
+
+    const arr = Object.entries(allNews)
+        .map(([id, n]) => ({...n, id}))
+        .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+
+    if(!arr.length){
+        list.innerHTML = '<p style="color:#555;text-align:center;padding:40px;">Пока нет новостей 📭</p>';
+        return;
+    }
+
+    list.innerHTML = '';
+    arr.forEach(n => {
+        const div = document.createElement('div');
+        div.className = 'news-item' + (n.important ? ' important' : '');
+        div.innerHTML = `
+            <div class="news-item-header">
+                <div class="news-item-title">${n.important ? '⭐ ' : ''}${n.title.replace(/</g,'&lt;')}</div>
+                <div class="news-item-date">${n.date}</div>
+            </div>
+            <div class="news-item-text">${n.text.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>
+            <div class="news-item-author">— ${n.author}</div>
+            ${currentUser && currentUser.isAdmin ? `<button class="news-delete-btn" onclick="deleteNews('${n.id}')">🗑</button>` : ''}
+        `;
+        list.appendChild(div);
+    });
+
+    // Отмечаем прочитанные
+    checkedNews = {};
+    arr.forEach(n => { checkedNews[n.id] = true; });
+    if(currentUser){
+        localStorage.setItem('checkedNews_' + emailToKey(currentUser.email), JSON.stringify(checkedNews));
+    }
+    updateNewsBadge();
+}
+
+function updateNewsBadge(){
+    const badge = document.getElementById('news-badge');
+    if(!badge || !currentUser)return;
+
+    const saved = localStorage.getItem('checkedNews_' + emailToKey(currentUser.email));
+    const checked = saved ? JSON.parse(saved) : {};
+
+    let unread = 0;
+    Object.keys(allNews).forEach(id => {
+        if(!checked[id]) unread++;
+    });
+
+    if(unread > 0){
+        badge.textContent = unread;
+        badge.style.display = 'inline-block';
+    } else {
+        badge.style.display = 'none';
+    }
+}
+
+// ============ ТОП ПОЛЬЗОВАТЕЛЕЙ ============
+function switchTopTab(tab){
+    currentTopTab = tab;
+    document.querySelectorAll('.top-tab').forEach(t => t.classList.remove('active'));
+    event.target.classList.add('active');
+    renderTopUsers();
+}
+
+function renderTopUsers(){
+    const list = document.getElementById('top-users-list');
+    if(!list)return;
+
+    let users = Object.values(allUsers).filter(u => !u.banned);
+
+    if(currentTopTab === 'comments'){
+        // По количеству комментов
+        const commentCounts = {};
+        allComments.forEach(c => {
+            if(!commentCounts[c.email]) commentCounts[c.email] = 0;
+            commentCounts[c.email]++;
+        });
+        users = users.map(u => ({...u, score: commentCounts[u.email] || 0}));
+        users.sort((a, b) => b.score - a.score);
+    } else if(currentTopTab === 'subs'){
+        // По подписчикам
+        users = users.map(u => ({...u, score: getFollowersCount(u.email)}));
+        users.sort((a, b) => b.score - a.score);
+    } else if(currentTopTab === 'level'){
+        // По статусу
+        const levelScore = {rapport: 5, pro: 4, lux: 3, basic: 2, pissing: 1};
+        users = users.map(u => {
+            const lvl = u.subscription === true ? 'basic' : u.subscription;
+            return {...u, score: (u.isAdmin ? 10 : 0) + (levelScore[lvl] || 0)};
+        });
+        users.sort((a, b) => b.score - a.score);
+    }
+
+    users = users.slice(0, 50);
+
+    if(!users.length){
+        list.innerHTML = '<p style="color:#555;text-align:center;padding:30px;">Нет пользователей</p>';
+        return;
+    }
+
+    list.innerHTML = '';
+    users.forEach((u, idx) => {
+        const div = document.createElement('div');
+        div.className = 'top-user-item';
+
+        let posClass = '';
+        let posText = idx + 1;
+        if(idx === 0){ posClass = 'gold'; posText = '🥇'; }
+        else if(idx === 1){ posClass = 'silver'; posText = '🥈'; }
+        else if(idx === 2){ posClass = 'bronze'; posText = '🥉'; }
+
+        const av = u.avatarImg ? `<img src="${u.avatarImg}">` : (u.avatar || '👤');
+
+        let statText = '';
+        if(currentTopTab === 'comments') statText = `💬 ${u.score} комментов`;
+        else if(currentTopTab === 'subs') statText = `👥 ${u.score} подписчиков`;
+        else if(currentTopTab === 'level'){
+            if(u.isAdmin) statText = '🔧 АДМИН';
+            else if(u.subscription === 'rapport') statText = '🛡️ РАППОРТ';
+            else if(u.subscription === 'pro') statText = '👑 САМЫЙ КРУТОЙ';
+            else if(u.subscription === 'lux') statText = '💎 LUX';
+            else if(u.subscription === 'basic' || u.subscription === true) statText = '🎬 BASIC';
+            else if(u.subscription === 'pissing') statText = '💧 ПИСАЮЩИЙ';
+            else statText = 'Без подписки';
+        }
+
+        div.innerHTML = `
+            <div class="top-position ${posClass}">${posText}</div>
+            <div class="top-user-avatar">${av}</div>
+            <div class="top-user-info">
+                <div class="top-user-name">${u.name || '—'}</div>
+                <div class="top-user-stat">${statText}</div>
+            </div>
+            <div class="top-user-score">${u.score}</div>
+        `;
+        div.onclick = () => openUserProfile(u.email);
+        list.appendChild(div);
+    });
+}
+
+// ============ НАПОМИНАНИЯ ============
+function selectReminderTime(btn, minutes){
+    document.querySelectorAll('.reminder-time-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    selectedReminderMinutes = minutes;
+}
+
+async function createReminder(){
+    if(!currentUser){alert('Войди!');return;}
+
+    const text = document.getElementById('reminder-text-input').value.trim();
+    if(!text){alert('Введи текст напоминания!');return;}
+    if(!selectedReminderMinutes){alert('Выбери время!');return;}
+
+    const reminder = {
+        userEmail: currentUser.email,
+        text: text,
+        remindAt: Date.now() + (selectedReminderMinutes * 60 * 1000),
+        createdAt: Date.now(),
+        done: false
+    };
+
+    const newRef = window.fbPush(window.fbRef(window.fbDb, 'reminders'));
+    await window.fbSet(newRef, reminder);
+
+    document.getElementById('reminder-text-input').value = '';
+    document.querySelectorAll('.reminder-time-btn').forEach(b => b.classList.remove('active'));
+    selectedReminderMinutes = null;
+
+    alert('✅ Напоминание поставлено!');
+}
+
+async function deleteReminder(id){
+    if(!confirm('Удалить напоминание?'))return;
+    await fbRemovePath(`reminders/${id}`);
+}
+
+function renderReminders(){
+    const list = document.getElementById('reminders-list');
+    if(!list || !currentUser)return;
+
+    const myReminders = Object.entries(allReminders)
+        .map(([id, r]) => ({...r, id}))
+        .filter(r => r.userEmail === currentUser.email)
+        .sort((a, b) => (a.remindAt || 0) - (b.remindAt || 0));
+
+    if(!myReminders.length){
+        list.innerHTML = '<p style="color:#555;text-align:center;padding:30px;">У тебя нет напоминаний</p>';
+        return;
+    }
+
+    list.innerHTML = '';
+    myReminders.forEach(r => {
+        const remainMs = r.remindAt - Date.now();
+        let timeText = '';
+        if(r.done){
+            timeText = '✅ Уже сработало';
+        } else if(remainMs <= 0){
+            timeText = '⏰ Сейчас!';
+        } else {
+            const mins = Math.floor(remainMs / 60000);
+            const hours = Math.floor(mins / 60);
+            const days = Math.floor(hours / 24);
+            if(days > 0) timeText = `Через ${days} дн ${hours % 24} ч`;
+            else if(hours > 0) timeText = `Через ${hours} ч ${mins % 60} мин`;
+            else timeText = `Через ${mins} мин`;
+        }
+
+        const div = document.createElement('div');
+        div.className = 'reminder-item' + (r.done ? ' done' : '');
+        div.innerHTML = `
+            <div class="reminder-info">
+                <div class="reminder-text">${r.text.replace(/</g,'&lt;')}</div>
+                <div class="reminder-time">🕐 ${timeText}</div>
+            </div>
+            <button class="action-btn red" onclick="deleteReminder('${r.id}')">🗑</button>
+        `;
+        list.appendChild(div);
+    });
+}
+
+let shownAlarms = {};
+function checkReminders(){
+    if(!currentUser)return;
+
+    Object.entries(allReminders).forEach(([id, r]) => {
+        if(r.userEmail !== currentUser.email) return;
+        if(r.done) return;
+        if(shownAlarms[id]) return;
+
+        if(r.remindAt <= Date.now()){
+            // Показываем будильник
+            showReminderAlarm(id, r.text);
+            shownAlarms[id] = true;
+            fbUpdatePath(`reminders/${id}`, {done: true});
+        }
+    });
+}
+
+// Проверяем каждые 30 секунд
+setInterval(checkReminders, 30000);
+
+function showReminderAlarm(id, text){
+    // Проигрываем звук (если браузер разрешит)
+    try {
+        const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuBzvLZiTYIG2m98OScTgwOUarm7blmGgU7k9n1unEiBC13yO/eizEIHWq+8+OWT');
+        audio.play().catch(() => {});
+    } catch(e) {}
+
+    const alarm = document.createElement('div');
+    alarm.className = 'reminder-alarm';
+    alarm.innerHTML = `
+        <div class="reminder-alarm-title">🔔 НАПОМИНАНИЕ!</div>
+        <div style="font-size:1.1rem;">${text.replace(/</g,'&lt;')}</div>
+        <button class="reminder-alarm-close" onclick="this.parentElement.remove()">ОК</button>
+    `;
+    document.body.appendChild(alarm);
+
+    setTimeout(() => {
+        if(alarm.parentElement) alarm.remove();
+    }, 30000);
+}
+
+// ============ ДЕНЬ РОЖДЕНИЯ ============
+async function editBirthday(){
+    if(!currentUser)return;
+
+    const current = currentUser.birthday || '';
+    const newBd = prompt('Введи дату рождения в формате ДД.ММ (например 15.03):', current);
+
+    if(newBd === null) return;
+    if(newBd === ''){
+        currentUser.birthday = '';
+        await saveCurrentUserToFirebase();
+        alert('✅ Дата удалена');
+        return;
+    }
+
+    // Проверка формата
+    if(!/^\d{2}\.\d{2}$/.test(newBd)){
+        alert('❌ Неверный формат! Используй ДД.ММ (например 15.03)');
+        return;
+    }
+
+    const [day, month] = newBd.split('.').map(n => parseInt(n));
+    if(day < 1 || day > 31 || month < 1 || month > 12){
+        alert('❌ Неверная дата!');
+        return;
+    }
+
+    currentUser.birthday = newBd;
+    await saveCurrentUserToFirebase();
+    alert('✅ День рождения сохранён! 🎂');
+    checkBirthday();
+}
+
+function isBirthdayToday(birthday){
+    if(!birthday) return false;
+    const today = new Date();
+    const [day, month] = birthday.split('.').map(n => parseInt(n));
+    return today.getDate() === day && (today.getMonth() + 1) === month;
+}
+
+async function checkBirthday(){
+    if(!currentUser) return;
+
+    const container = document.getElementById('birthday-banner-container');
+    if(!container) return;
+
+    // Мой ДР
+    if(isBirthdayToday(currentUser.birthday)){
+        container.innerHTML = `
+            <div class="birthday-banner">
+                🎂🎉 С ДНЁМ РОЖДЕНИЯ, ${currentUser.name.toUpperCase()}! 🎉🎂<br>
+                <span style="font-size:1rem;letter-spacing:2px;">Мы подарили тебе +50 рублей на счёт!</span>
+            </div>
+        `;
+        // Дарим 50 руб если не дарили сегодня
+        const today = new Date().toDateString();
+        if(currentUser.lastBirthdayGift !== today){
+            currentUser.wallet.RUB = (currentUser.wallet.RUB || 0) + 50;
+            currentUser.lastBirthdayGift = today;
+            await saveCurrentUserToFirebase();
+            updateWalletDisplay();
+            startConfetti();
+        }
+    } else {
+        // Проверяем ДР других пользователей
+        const bdayUsers = Object.values(allUsers).filter(u =>
+            u.email !== currentUser.email && isBirthdayToday(u.birthday) && !u.banned
+        );
+        if(bdayUsers.length > 0){
+            let bdayText = bdayUsers.slice(0, 3).map(u => u.name).join(', ');
+            if(bdayUsers.length > 3) bdayText += ` и ещё ${bdayUsers.length - 3}`;
+            container.innerHTML = `
+                <div class="birthday-banner">
+                    🎂 Сегодня день рождения у: ${bdayText}!<br>
+                    <span style="font-size:1rem;">Поздравь их!</span>
+                </div>
+            `;
+        } else {
+            container.innerHTML = '';
+        }
+    }
+}
+
+function startConfetti(){
+    const emojis = ['🎉', '🎊', '🎂', '🎁', '⭐', '✨', '💖', '🌟', '🎈', '🎇'];
+    for(let i = 0; i < 30; i++){
+        setTimeout(() => {
+            const confetti = document.createElement('div');
+            confetti.className = 'confetti';
+            confetti.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+            confetti.style.left = Math.random() * 100 + '%';
+            confetti.style.animationDuration = (2 + Math.random() * 3) + 's';
+            confetti.style.animationDelay = Math.random() * 2 + 's';
+            document.body.appendChild(confetti);
+            setTimeout(() => confetti.remove(), 5000);
+        }, i * 100);
+    }
+}
+
+// ============ СЕЗОННЫЕ ТЕМЫ ============
+function getCurrentSeason(){
+    const month = new Date().getMonth() + 1;
+    if(month >= 3 && month <= 5) return 'spring';
+    if(month >= 6 && month <= 8) return 'summer';
+    if(month >= 9 && month <= 11) return 'autumn';
+    return 'winter';
+}
+
+function applySeasonEffect(){
+    // Удаляем старый эффект
+    const oldEffect = document.querySelector('.season-effect');
+    if(oldEffect) oldEffect.remove();
+
+    // Убираем классы сезонов
+    document.body.classList.remove('season-summer', 'season-autumn', 'season-winter', 'season-spring');
+
+    // Только для авто-темы
+    if(currentUser && currentUser.theme === 'auto'){
+        const season = getCurrentSeason();
+        document.body.classList.add('season-' + season);
+
+        const effect = document.createElement('div');
+        effect.className = 'season-effect';
+
+        let emoji, count, className;
+        if(season === 'winter'){ emoji = '❄'; count = 30; className = 'snow'; }
+        else if(season === 'autumn'){ emoji = '🍂'; count = 15; className = 'leaf'; }
+        else if(season === 'spring'){ emoji = '🌸'; count = 20; className = 'flower'; }
+        else if(season === 'summer'){ emoji = '☀️'; count = 8; className = 'sun-ray'; }
+
+        for(let i = 0; i < count; i++){
+            const el = document.createElement('div');
+            el.className = className;
+            el.textContent = emoji;
+            el.style.left = Math.random() * 100 + '%';
+            el.style.animationDuration = (5 + Math.random() * 10) + 's';
+            el.style.animationDelay = Math.random() * 5 + 's';
+            effect.appendChild(el);
+        }
+        document.body.appendChild(effect);
+    }
+}
+
+// Обновляем сезонный эффект каждый час
+setInterval(applySeasonEffect, 3600000);
+// ============ ФИКС КНОПОК ЗВОНКОВ ============
+// Добавляем кнопки звонков в чат если их нет
+function addCallButtonsToChat(){
+    setInterval(() => {
+        const inputArea = document.querySelector('.chat-input-area');
+        if(!inputArea) return;
+
+        // Проверяем есть ли уже кнопки звонков
+        if(inputArea.querySelector('.call-btn')) return;
+
+        // Проверяем что чат открыт
+        if(!currentChatId) return;
+
+        // Определяем цель звонка
+        let target, chatType;
+        if(currentChatType === 'group'){
+            target = currentChatId.replace('group_', '');
+            chatType = 'group';
+        } else {
+            if(!currentChatUser) return;
+            target = currentChatUser.email;
+            chatType = 'private';
+        }
+
+        // Создаём кнопки
+        const btnCall = document.createElement('button');
+        btnCall.className = 'call-btn';
+        btnCall.innerHTML = '📞';
+        btnCall.title = 'Голосовой звонок';
+        btnCall.onclick = () => startCall(target, chatType, false);
+
+        const btnVideo = document.createElement('button');
+        btnVideo.className = 'call-btn video';
+        btnVideo.innerHTML = '📹';
+        btnVideo.title = 'Видеозвонок';
+        btnVideo.onclick = () => startCall(target, chatType, true);
+
+        // Вставляем перед последней кнопкой (chat-send)
+        const sendBtn = inputArea.querySelector('.chat-send');
+        if(sendBtn){
+            inputArea.insertBefore(btnCall, sendBtn);
+            inputArea.insertBefore(btnVideo, sendBtn);
+        } else {
+            inputArea.appendChild(btnCall);
+            inputArea.appendChild(btnVideo);
+        }
+    }, 1000);
+}
+addCallButtonsToChat();
+// ============================================
+//  АДМИН ФИЧИ: АНАЛИТИКА, ПРЕДУПРЕЖДЕНИЯ,
+//  УПР. СЕРИАЛАМИ, ПРАВА МОДЕРАТОРОВ
+// ============================================
+
+// Переменные
+let userActivity = {}; // Отслеживание активности
+let currentOnlineUsers = {};
+let allSerialsData = {}; // Динамические сериалы из Firebase
+
+// ============ СЛУШАТЕЛИ ============
+function setupOnlineListener(){
+    if(firebaseReady){
+        fbListen('online', (data) => {
+            currentOnlineUsers = data || {};
+            if(document.getElementById('admin-analytics').classList.contains('active')){
+                renderAnalytics();
+            }
+            renderAdminUsers();
+        });
+    } else {
+        setTimeout(setupOnlineListener, 500);
+    }
+}
+setupOnlineListener();
+
+function setupSerialsListener(){
+    if(firebaseReady){
+        fbListen('serials', (data) => {
+            allSerialsData = data || {};
+            // Обновляем SERIALS массив
+            updateSerialsFromFirebase();
+            if(typeof renderFolders === 'function') renderFolders();
+            if(document.getElementById('admin-serials') && document.getElementById('admin-serials').classList.contains('active')){
+                renderSerialsAdmin();
+            }
+        });
+    } else {
+        setTimeout(setupSerialsListener, 500);
+    }
+}
+setupSerialsListener();
+
+// ============ ОНЛАЙН СТАТУС ============
+function updateOnlineStatus(){
+    if(!currentUser || !firebaseReady) return;
+    const key = emailToKey(currentUser.email);
+    fbWrite(`online/${key}`, {
+        email: currentUser.email,
+        name: currentUser.name,
+        avatar: currentUser.avatar || '👤',
+        avatarImg: currentUser.avatarImg || '',
+        lastSeen: Date.now()
+    });
+}
+
+// Обновляем статус каждые 30 секунд
+setInterval(() => {
+    updateOnlineStatus();
+}, 30000);
+
+// При загрузке страницы
+setTimeout(() => {
+    updateOnlineStatus();
+}, 2000);
+
+// При закрытии страницы удаляем себя из онлайна
+window.addEventListener('beforeunload', () => {
+    if(currentUser && firebaseReady){
+        fbRemovePath(`online/${emailToKey(currentUser.email)}`);
+    }
+});
+
+function isUserOnline(email){
+    const key = emailToKey(email);
+    const online = currentOnlineUsers[key];
+    if(!online) return false;
+    // Считаем онлайн если был активен за последние 2 минуты
+    return (Date.now() - (online.lastSeen || 0)) < 120000;
+}
+
+function getOnlineUsersCount(){
+    let count = 0;
+    Object.values(currentOnlineUsers).forEach(u => {
+        if((Date.now() - (u.lastSeen || 0)) < 120000) count++;
+    });
+    return count;
+}
+
+// ============ АНАЛИТИКА ============
+function renderAnalytics(){
+    // Онлайн
+    const onlineCount = getOnlineUsersCount();
+    const onlineCountEl = document.getElementById('online-users-count');
+    if(onlineCountEl) onlineCountEl.textContent = onlineCount;
+
+    const onlineList = document.getElementById('online-users-list');
+    if(onlineList){
+        onlineList.innerHTML = '';
+        Object.values(currentOnlineUsers).forEach(u => {
+            if((Date.now() - (u.lastSeen || 0)) < 120000){
+                const div = document.createElement('div');
+                div.className = 'online-user-item';
+                const av = u.avatarImg ? `<img src="${u.avatarImg}" style="width:30px;height:30px;border-radius:50%;object-fit:cover;">` : (u.avatar || '👤');
+                div.innerHTML = `<div style="font-size:1.3rem;">${av}</div><div style="flex:1;">${u.name}</div><div class="online-dot"></div>`;
+                onlineList.appendChild(div);
+            }
+        });
+        if(onlineList.innerHTML === ''){
+            onlineList.innerHTML = '<p style="color:#555;text-align:center;padding:20px;">Никого нет онлайн</p>';
+        }
+    }
+
+    // Регистрации за 7 дней
+    renderRegistrationsChart();
+
+    // Топ активности
+    renderActivityChart();
+
+    // Топ серий
+    renderTopEpisodesChart();
+}
+
+function renderRegistrationsChart(){
+    const container = document.getElementById('registrations-chart');
+    if(!container) return;
+
+    const days = 7;
+    const now = new Date();
+    const dayData = {};
+
+    // Инициализируем последние 7 дней
+    for(let i = days - 1; i >= 0; i--){
+        const d = new Date(now);
+        d.setDate(d.getDate() - i);
+        const key = d.toLocaleDateString('ru-RU', {day:'2-digit', month:'2-digit'});
+        dayData[key] = 0;
+    }
+
+    // Считаем регистрации
+    Object.values(allUsers).forEach(u => {
+        if(u.registeredAt){
+            const d = new Date(u.registeredAt);
+            const key = d.toLocaleDateString('ru-RU', {day:'2-digit', month:'2-digit'});
+            if(dayData[key] !== undefined) dayData[key]++;
+        }
+    });
+
+    const maxVal = Math.max(...Object.values(dayData), 1);
+
+    container.innerHTML = '';
+    Object.entries(dayData).forEach(([day, count]) => {
+        const percent = (count / maxVal) * 100;
+        const div = document.createElement('div');
+        div.className = 'chart-bar';
+        div.innerHTML = `
+            <div class="chart-label">${day}</div>
+            <div class="chart-value">
+                <div class="chart-fill" style="width:${percent}%;">${count}</div>
+            </div>
+        `;
+        container.appendChild(div);
+    });
+}
+
+function renderActivityChart(){
+    const container = document.getElementById('activity-chart');
+    if(!container) return;
+
+    // Топ 5 пользователей по комментам
+    const commentCounts = {};
+    allComments.forEach(c => {
+        if(!commentCounts[c.email]) commentCounts[c.email] = 0;
+        commentCounts[c.email]++;
+    });
+
+    const top = Object.entries(commentCounts)
+        .sort((a,b) => b[1] - a[1])
+        .slice(0, 5);
+
+    if(top.length === 0){
+        container.innerHTML = '<p style="color:#555;text-align:center;">Нет данных</p>';
+        return;
+    }
+
+    const maxVal = top[0][1];
+    container.innerHTML = '';
+    top.forEach(([email, count]) => {
+        const user = allUsers[emailToKey(email)];
+        const name = user ? user.name : email;
+        const percent = (count / maxVal) * 100;
+        const div = document.createElement('div');
+        div.className = 'chart-bar';
+        div.innerHTML = `
+            <div class="chart-label">${name.substring(0, 12)}</div>
+            <div class="chart-value">
+                <div class="chart-fill" style="width:${percent}%;">${count}</div>
+            </div>
+        `;
+        container.appendChild(div);
+    });
+}
+
+function renderTopEpisodesChart(){
+    const container = document.getElementById('top-episodes-chart');
+    if(!container) return;
+
+    const epViews = {};
+    Object.entries(cachedViews).forEach(([key, count]) => {
+        epViews[key] = count;
+    });
+
+    const top = Object.entries(epViews)
+        .sort((a,b) => b[1] - a[1])
+        .slice(0, 5);
+
+    if(top.length === 0){
+        container.innerHTML = '<p style="color:#555;text-align:center;">Нет данных</p>';
+        return;
+    }
+
+    const maxVal = top[0][1];
+    container.innerHTML = '';
+    top.forEach(([key, count]) => {
+        const parts = key.split('_');
+        const epNum = parts[parts.length - 1];
+        const percent = (count / maxVal) * 100;
+        const div = document.createElement('div');
+        div.className = 'chart-bar';
+        div.innerHTML = `
+            <div class="chart-label">Серия ${epNum}</div>
+            <div class="chart-value">
+                <div class="chart-fill" style="width:${percent}%;">${count}</div>
+            </div>
+        `;
+        container.appendChild(div);
+    });
+}
+
+function searchUserAnalytics(){
+    const query = document.getElementById('analytics-search').value.trim().toLowerCase();
+    const result = document.getElementById('user-analytics-result');
+    if(!query){
+        result.innerHTML = '';
+        return;
+    }
+
+    const user = Object.values(allUsers).find(u =>
+        u.email.toLowerCase().includes(query) ||
+        (u.name && u.name.toLowerCase().includes(query))
+    );
+
+    if(!user){
+        result.innerHTML = '<p style="color:#888;text-align:center;padding:20px;">Пользователь не найден</p>';
+        return;
+    }
+
+    // Собираем аналитику
+    const userComments = allComments.filter(c => c.email === user.email).length;
+    const userTickets = allTickets.filter(t => t.email === user.email).length;
+    const followers = getFollowersCount(user.email);
+    const following = getFollowingCount(user.email);
+    const online = isUserOnline(user.email);
+    const warnCount = user.warnings || 0;
+    const regDate = user.registeredAt ? new Date(user.registeredAt).toLocaleString('ru-RU') : 'Неизвестно';
+
+    result.innerHTML = `
+        <div class="user-analytics">
+            <div style="display:flex;align-items:center;gap:15px;margin-bottom:15px;">
+                <div style="font-size:2.5rem;">${user.avatar || '👤'}</div>
+                <div>
+                    <div style="font-weight:700;font-size:1.2rem;">${user.name} ${online ? '<span class="online-dot"></span>' : ''}</div>
+                    <div style="color:#888;font-size:0.85rem;">${user.email}</div>
+                </div>
+            </div>
+            <div class="analytics-row"><span class="analytics-label">Статус:</span> <span class="analytics-value">${online ? '🟢 Онлайн' : '⚫ Оффлайн'}</span></div>
+            <div class="analytics-row"><span class="analytics-label">Зарегистрирован:</span> <span class="analytics-value">${regDate}</span></div>
+            <div class="analytics-row"><span class="analytics-label">Баланс:</span> <span class="analytics-value">${(user.wallet?.RUB || 0).toFixed(2)} ₽</span></div>
+            <div class="analytics-row"><span class="analytics-label">Подписка:</span> <span class="analytics-value">${user.subscription || 'нет'}</span></div>
+            <div class="analytics-row"><span class="analytics-label">Комментов написал:</span> <span class="analytics-value">${userComments}</span></div>
+            <div class="analytics-row"><span class="analytics-label">Обращений создал:</span> <span class="analytics-value">${userTickets}</span></div>
+            <div class="analytics-row"><span class="analytics-label">Подписчиков:</span> <span class="analytics-value">${followers}</span></div>
+            <div class="analytics-row"><span class="analytics-label">Подписок:</span> <span class="analytics-value">${following}</span></div>
+            <div class="analytics-row"><span class="analytics-label">Предупреждений:</span> <span class="analytics-value" style="color:${warnCount >= 2 ? 'var(--red)' : '#FF9800'};">${warnCount} / 3</span></div>
+            <div class="analytics-row"><span class="analytics-label">Забанен:</span> <span class="analytics-value">${user.banned ? '🚫 ДА' : '✅ нет'}</span></div>
+        </div>
+    `;
+}
+
+// ============ ПРЕДУПРЕЖДЕНИЯ ============
+async function warnUser(userKey){
+    if(!currentUser){alert('Войди!');return;}
+    if(!currentUser.isAdmin && !hasPermission('warn')){alert('Нет прав!');return;}
+
+    const user = allUsers[userKey];
+    if(!user){alert('Пользователь не найден!');return;}
+    if(user.email === ADMIN_EMAIL){alert('Нельзя предупредить главного админа!');return;}
+
+    const reason = prompt(`Причина предупреждения для ${user.name}:`);
+    if(!reason) return;
+
+    const newWarnings = (user.warnings || 0) + 1;
+    const warnData = {
+        warnings: newWarnings,
+        lastWarnReason: reason,
+        lastWarnDate: new Date().toLocaleString('ru-RU'),
+        lastWarnBy: currentUser.name
+    };
+
+    // Автобан при 3 предупреждениях
+    if(newWarnings >= 3){
+        warnData.banned = true;
+        warnData.banReason = 'Автобан за 3 предупреждения';
+    }
+
+    await fbUpdatePath(`users/${userKey}`, warnData);
+
+    // Отправить уведомление пользователю через Firebase
+    const warnNotif = {
+        userEmail: user.email,
+        reason: reason,
+        count: newWarnings,
+        date: new Date().toLocaleString('ru-RU'),
+        from: currentUser.name,
+        timestamp: Date.now()
+    };
+    const notifRef = window.fbPush(window.fbRef(window.fbDb, 'warnNotifications'));
+    await window.fbSet(notifRef, warnNotif);
+
+    if(newWarnings >= 3){
+        alert(`⚠️ Предупреждение выдано (${newWarnings}/3)\n🚫 Пользователь АВТОМАТИЧЕСКИ ЗАБАНЕН!`);
+    } else {
+        alert(`⚠️ Предупреждение ${newWarnings}/3 выдано!`);
+    }
+}
+
+// Слушаем предупреждения для текущего юзера
+function setupWarnNotificationsListener(){
+    if(firebaseReady){
+        fbListen('warnNotifications', (data) => {
+            if(!currentUser || !data) return;
+            Object.entries(data).forEach(([id, notif]) => {
+                if(notif.userEmail === currentUser.email && !notif.seen){
+                    // Показываем модалку
+                    showWarnModal(notif);
+                    // Помечаем как показанное
+                    fbUpdatePath(`warnNotifications/${id}`, {seen: true});
+                }
+            });
+        });
+    } else {
+        setTimeout(setupWarnNotificationsListener, 500);
+    }
+}
+setupWarnNotificationsListener();
+
+function showWarnModal(notif){
+    const modal = document.getElementById('warn-modal');
+    if(!modal) return;
+    document.getElementById('warn-modal-text').innerHTML = `
+        <div>Причина: <b>${notif.reason.replace(/</g,'&lt;')}</b></div>
+        <div style="margin-top:10px;font-size:0.9rem;opacity:0.9;">От: ${notif.from}</div>
+    `;
+    document.getElementById('warn-modal-count').textContent = `${notif.count} / 3 предупреждений`;
+    modal.classList.add('show');
+}
+
+function closeWarnModal(){
+    document.getElementById('warn-modal').classList.remove('show');
+}
+
+// ============ ПРАВА МОДЕРАТОРОВ ============
+function hasPermission(perm){
+    if(!currentUser) return false;
+    if(currentUser.isAdmin) return true;
+    if(currentUser.subscription !== 'rapport') return false;
+    if(!currentUser.permissions) return true; // Раппорт по умолчанию все права
+    return currentUser.permissions[perm] === true;
+}
+
+function openPermsModal(userKey){
+    if(!currentUser || !currentUser.isAdmin){alert('Только для админов!');return;}
+    const user = allUsers[userKey];
+    if(!user){alert('Пользователь не найден!');return;}
+
+    document.getElementById('perms-user-email').value = user.email;
+    document.getElementById('perms-user-info').textContent = `${user.name} (${user.email})`;
+
+    const perms = user.permissions || {ban:true, 'delete-comments':true, moderate:true, warn:true, 'delete-tickets':true};
+
+    document.getElementById('perm-ban').classList.toggle('active', perms.ban);
+    document.getElementById('perm-delete-comments').classList.toggle('active', perms['delete-comments']);
+    document.getElementById('perm-moderate').classList.toggle('active', perms.moderate);
+    document.getElementById('perm-warn').classList.toggle('active', perms.warn);
+    document.getElementById('perm-delete-tickets').classList.toggle('active', perms['delete-tickets']);
+
+    document.getElementById('perms-modal').classList.add('show');
+}
+
+function togglePerm(el){
+    el.classList.toggle('active');
+}
+
+async function savePerms(){
+    const email = document.getElementById('perms-user-email').value;
+    const userKey = emailToKey(email);
+
+    const perms = {
+        ban: document.getElementById('perm-ban').classList.contains('active'),
+        'delete-comments': document.getElementById('perm-delete-comments').classList.contains('active'),
+        moderate: document.getElementById('perm-moderate').classList.contains('active'),
+        warn: document.getElementById('perm-warn').classList.contains('active'),
+        'delete-tickets': document.getElementById('perm-delete-tickets').classList.contains('active')
+    };
+
+    await fbUpdatePath(`users/${userKey}`, {permissions: perms});
+    document.getElementById('perms-modal').classList.remove('show');
+    alert('✅ Права сохранены!');
+}
+
+function closePerms(){
+    document.getElementById('perms-modal').classList.remove('show');
+}
+
+// ============ УПРАВЛЕНИЕ СЕРИАЛАМИ ============
+function updateSerialsFromFirebase(){
+    // Обновляем массив SERIALS данными из Firebase
+    Object.entries(allSerialsData).forEach(([id, data]) => {
+        // Обновляем VIDEO_URLS
+        if(data.episodes){
+            Object.entries(data.episodes).forEach(([num, url]) => {
+                if(!VIDEO_URLS[num]) VIDEO_URLS[num] = url;
+            });
+        }
+
+        // Проверяем есть ли уже такой сериал в SERIALS
+        const existing = SERIALS.find(s => s.id === id);
+        if(!existing){
+            SERIALS.push({
+                id: id,
+                name: data.name,
+                icon: data.icon || '🎬',
+                totalEps: data.episodes ? Object.keys(data.episodes).length : 0,
+                subOnly: data.vip || false,
+                earlyEps: [],
+                poster: data.poster || null
+            });
+        } else {
+            existing.name = data.name;
+            existing.icon = data.icon || '🎬';
+            existing.totalEps = data.episodes ? Object.keys(data.episodes).length : 0;
+            existing.subOnly = data.vip || false;
+            existing.poster = data.poster || existing.poster;
+        }
+    });
+}
+
+async function createSerial(){
+    if(!currentUser || !currentUser.isAdmin){alert('Только для админа!');return;}
+
+    const id = document.getElementById('new-serial-id').value.trim().toLowerCase().replace(/[^a-z0-9-]/g,'');
+    const name = document.getElementById('new-serial-name').value.trim();
+    const icon = document.getElementById('new-serial-icon').value.trim() || '🎬';
+    const poster = document.getElementById('new-serial-poster').value.trim();
+    const vip = document.getElementById('new-serial-vip').checked;
+
+    if(!id){alert('Введи ID сериала (латиница)!');return;}
+    if(!name){alert('Введи название!');return;}
+
+    // Проверяем не занят ли ID
+    if(SERIALS.find(s => s.id === id)){alert('Сериал с таким ID уже есть!');return;}
+
+    const serialData = {
+        name: name,
+        icon: icon,
+        vip: vip,
+        poster: poster || '',
+        createdAt: Date.now(),
+        episodes: {}
+    };
+
+    await fbWrite(`serials/${id}`, serialData);
+
+    // Очищаем форму
+    document.getElementById('new-serial-id').value = '';
+    document.getElementById('new-serial-name').value = '';
+    document.getElementById('new-serial-icon').value = '🎬';
+    document.getElementById('new-serial-poster').value = '';
+    document.getElementById('new-serial-vip').checked = false;
+
+    alert(`✅ Сериал "${name}" создан!`);
+}
+
+async function addEpisode(){
+    if(!currentUser || !currentUser.isAdmin){alert('Только для админа!');return;}
+
+    const serialId = document.getElementById('add-ep-serial-select').value;
+    const num = document.getElementById('add-ep-number').value;
+    const url = document.getElementById('add-ep-url').value.trim();
+
+    if(!serialId){alert('Выбери сериал!');return;}
+    if(!num){alert('Введи номер серии!');return;}
+    if(!url){alert('Введи ссылку на видео!');return;}
+
+    await fbWrite(`serials/${serialId}/episodes/${num}`, url);
+
+    // Также обновляем VIDEO_URLS
+    VIDEO_URLS[num] = url;
+
+    document.getElementById('add-ep-number').value = '';
+    document.getElementById('add-ep-url').value = '';
+
+    alert(`✅ Серия ${num} добавлена!`);
+}
+
+async function deleteSerial(id){
+    if(!confirm('Удалить сериал полностью?')) return;
+    await fbRemovePath(`serials/${id}`);
+    // Удаляем из SERIALS
+    const idx = SERIALS.findIndex(s => s.id === id);
+    if(idx > -1 && SERIALS[idx].id !== 'the-ded') SERIALS.splice(idx, 1);
+    alert('✅ Удалено!');
+}
+
+async function deleteEpisode(serialId, epNum){
+    if(!confirm(`Удалить серию ${epNum}?`)) return;
+    await fbRemovePath(`serials/${serialId}/episodes/${epNum}`);
+}
+
+function renderSerialsAdmin(){
+    const list = document.getElementById('serials-list');
+    if(!list) return;
+
+    // Обновляем select для добавления серий
+    const selectAddEp = document.getElementById('add-ep-serial-select');
+    if(selectAddEp){
+        selectAddEp.innerHTML = '<option value="">Выбери сериал</option>';
+        SERIALS.forEach(s => {
+            const opt = document.createElement('option');
+            opt.value = s.id;
+            opt.textContent = `${s.icon} ${s.name}`;
+            selectAddEp.appendChild(opt);
+        });
+    }
+
+    list.innerHTML = '';
+    SERIALS.forEach(s => {
+        const div = document.createElement('div');
+        div.className = 'serial-manage-form';
+        div.style.marginBottom = '15px';
+
+        const episodes = allSerialsData[s.id]?.episodes || {};
+        const epsList = Object.entries(episodes).sort((a,b) => parseInt(a[0]) - parseInt(b[0]));
+
+        div.innerHTML = `
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+                <h4>${s.icon} ${s.name} ${s.subOnly ? '🔒 VIP' : ''}</h4>
+                ${s.id !== 'the-ded' ? `<button class="action-btn red" onclick="deleteSerial('${s.id}')">🗑 Удалить сериал</button>` : ''}
+            </div>
+            <div style="color:#888;font-size:0.85rem;margin-bottom:10px;">Всего серий: ${s.totalEps}</div>
+            ${epsList.length > 0 ? '<h5 style="color:#666;margin:10px 0 5px;font-size:0.85rem;">Серии из Firebase:</h5>' : ''}
+            ${epsList.map(([num, url]) => `
+                <div class="episode-manage-row">
+                    <div class="episode-manage-num">СЕРИЯ ${num}</div>
+                    <div style="flex:1;color:#888;font-size:0.75rem;word-break:break-all;">${url.substring(0, 60)}...</div>
+                    <button class="action-btn red" onclick="deleteEpisode('${s.id}', '${num}')">🗑</button>
+                </div>
+            `).join('')}
+        `;
+        list.appendChild(div);
+    });
+}
+
+// ============ РАСШИРЕНИЕ АДМИН ПАНЕЛИ ============
+// Обновляем switchAdminTab
+if(typeof switchAdminTab === 'function'){
+    const originalSwitchAdmin = switchAdminTab;
+    switchAdminTab = function(tab){
+        const tabs = ['users','payments','comments','tickets','promos','episodes','moderation','analytics','serials'];
+        document.querySelectorAll('.admin-tab').forEach((t,i) => t.classList.toggle('active', tabs[i] === tab));
+        tabs.forEach(t => {
+            const el = document.getElementById('admin-' + t);
+            if(el) el.classList.toggle('active', t === tab);
+        });
+        if(tab === 'moderation') renderModerationList();
+        if(tab === 'analytics') renderAnalytics();
+        if(tab === 'serials') renderSerialsAdmin();
+    };
+}
+
+// Обновляем openAdmin
+if(typeof openAdmin === 'function'){
+    const originalOpenAdmin = openAdmin;
+    openAdmin = function(){
+        if(!currentUser) return;
+        if(!currentUser.isAdmin && currentUser.subscription !== 'rapport'){alert('Нет доступа!');return;}
+        document.getElementById('admin-overlay').classList.add('show');
+        renderAdminStats();
+        renderAdminUsers();
+        renderAdminPayments();
+        renderAdminComments();
+        renderAdminTickets();
+        renderAdminPromos();
+        renderAdminEpisodes();
+        renderModerationList();
+        renderAnalytics();
+        renderSerialsAdmin();
+        fillPaymentUserSelect();
+        fillBoostFollowersSelect();
+        updateTicketsBadge();
+        updateModerationBadge();
+    };
+}
+
+// Обновляем renderAdminUsers для добавления кнопок варна и прав
+if(typeof renderAdminUsers === 'function'){
+    const originalRenderAdminUsers = renderAdminUsers;
+    renderAdminUsers = function(){
+        const users = Object.entries(allUsers);
+        const tb = document.getElementById('admin-users-body');
+        if(!tb) return;
+        tb.innerHTML = '';
+        users.forEach(([key, u]) => {
+            let badge = '';
+            if(u.banned) badge = '<span class="badge-banned">🚫</span>';
+            else if(u.isAdmin) badge = '<span class="badge-admin">🔧 АДМИН</span>';
+            else if(u.subscription === 'rapport') badge = '<span class="badge-rapport">🛡️ RAPPORT</span>';
+            else if(u.subscription === 'pro') badge = '<span class="badge-pro">👑 PRO</span>';
+            else if(u.subscription === 'lux') badge = '<span class="badge-lux">💎 LUX</span>';
+            else if(u.subscription === 'basic' || u.subscription === true) badge = '<span class="badge-basic">🎬 BASIC</span>';
+            else if(u.subscription === 'pissing') badge = '<span class="badge-pissing">💧 ПИС</span>';
+            else badge = '<span class="badge-free">—</span>';
+
+            const warnBadge = u.warnings > 0 ? `<span class="warn-badge ${u.warnings >= 2 ? 'critical' : ''}">⚠️ ${u.warnings}/3</span>` : '';
+            const onlineIndicator = isUserOnline(u.email) ? '<span class="online-dot"></span>' : '<span class="online-dot offline"></span>';
+
+            const tr = document.createElement('tr');
+            const isAdminUser = currentUser && currentUser.isAdmin;
+            tr.innerHTML = `
+                <td>${onlineIndicator}${u.email}</td>
+                <td style="cursor:pointer;" onclick="openUserProfile('${u.email}')">${u.avatar || '👤'} ${u.name || '—'}${warnBadge}</td>
+                <td>${(u.wallet?.RUB || 0).toFixed(2)} ₽</td>
+                <td>${badge}</td>
+                <td>
+                    ${isAdminUser ? `
+                        <button class="action-btn pissing-btn-admin" onclick="adminGiveSub('${key}','pissing')">💧</button>
+                        <button class="action-btn green" onclick="adminGiveSub('${key}','basic')">🎬</button>
+                        <button class="action-btn lux" onclick="adminGiveSub('${key}','lux')">💎</button>
+                        <button class="action-btn gold" onclick="adminGiveSub('${key}','pro')">👑</button>
+                        <button class="action-btn rapport" onclick="adminGiveSub('${key}','rapport')">🛡️</button>
+                        <button class="action-btn red" onclick="adminRemoveSub('${key}')">❌</button>
+                        ${u.email !== ADMIN_EMAIL ? `<button class="action-btn ${u.isAdmin?'orange':'admin-btn'}" onclick="adminToggleAdmin('${key}')">${u.isAdmin?'❌🔧':'🔧'}</button>` : ''}
+                        ${u.subscription === 'rapport' ? `<button class="action-btn blue" onclick="openPermsModal('${key}')" title="Настроить права">🔒</button>` : ''}
+                    ` : ''}
+                    ${(isAdminUser || hasPermission('warn')) && !u.isAdmin ? `<button class="action-btn orange" onclick="warnUser('${key}')" title="Предупреждение">⚠️</button>` : ''}
+                    ${(isAdminUser || hasPermission('ban')) ? `<button class="action-btn ${u.banned?'green':'red'}" onclick="adminToggleBan('${key}')">${u.banned?'✅':'🚫'}</button>` : ''}
+                    ${isAdminUser ? `<button class="action-btn gray" onclick="adminEditUser('${key}')">✏️</button>${u.email !== ADMIN_EMAIL ? `<button class="action-btn red" onclick="adminDeleteUser('${key}')">🗑</button>` : ''}` : ''}
+                </td>
+            `;
+            tb.appendChild(tr);
+        });
+    };
+}
+
+// При регистрации сохраняем дату
+if(typeof tryRegister === 'function'){
+    const originalTryRegister = tryRegister;
+    tryRegister = async function(){
+        const name = document.getElementById('reg-name').value.trim();
+        const email = document.getElementById('reg-email').value.trim().toLowerCase();
+        const password = document.getElementById('reg-password').value;
+        if(!name || !email || !password){showRegError('❌ Заполни всё');return;}
+        if(!email.includes('@') || !email.includes('.')){showRegError('❌ Правильный email');return;}
+        if(password.length < 4){showRegError('❌ Минимум 4 символа');return;}
+        const existing = await getUserByEmail(email);
+        if(existing){showRegError('❌ Email занят');return;}
+        const newUser = {
+            email, password, name,
+            avatar:'👤', avatarImg:'', bio:'',
+            wallet:{RUB:0,USD:0,EUR:0,KZT:0}, currency:'RUB',
+            subscription:false, isAdmin:false, banned:false,
+            theme:'default', tempSubUntil:0, nickColor:'default',
+            extraFollowers:0, birthday:'', lastBirthdayGift:'',
+            warnings: 0, registeredAt: Date.now()
+        };
+        await fbWrite(`users/${emailToKey(email)}`, newUser);
+        currentUser = newUser;
+        setCookie('theded_fb', {email:newUser.email, password:newUser.password}, 30);
+        loginSuccess();
+    };
+}
