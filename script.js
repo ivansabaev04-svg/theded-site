@@ -3588,3 +3588,1122 @@ async function resetAllExtraFollowers(){
 
     alert('💥 Накрученные подписчики сброшены у всех!');
 }
+// ============================================
+//  ДРУЗЬЯ + СТЕНА + ПОДАРКИ
+// ============================================
+
+let allFriends = {}; // Все дружбы
+let allWallPosts = {}; // Все посты
+let allGifts = {}; // Все подарки
+let currentFriendsTab = 'friends';
+
+// ============ FIREBASE СЛУШАТЕЛИ ============
+function setupFriendsListener(){
+    if(firebaseReady){
+        fbListen('friends', (data) => {
+            allFriends = data || {};
+            if(typeof updateFriendsCount === 'function') updateFriendsCount();
+            if(typeof renderFriendsList === 'function' && document.getElementById('page-friends').classList.contains('active')){
+                renderFriendsList();
+            }
+            if(typeof checkNewFriendRequests === 'function') checkNewFriendRequests();
+        });
+    } else {
+        setTimeout(setupFriendsListener, 500);
+    }
+}
+setupFriendsListener();
+
+function setupWallPostsListener(){
+    if(firebaseReady){
+        fbListen('wallPosts', (data) => {
+            allWallPosts = data || {};
+            if(typeof renderWallPosts === 'function') renderWallPosts();
+        });
+    } else {
+        setTimeout(setupWallPostsListener, 500);
+    }
+}
+setupWallPostsListener();
+
+function setupGiftsListener(){
+    if(firebaseReady){
+        fbListen('gifts', (data) => {
+            allGifts = data || {};
+            if(typeof checkNewGifts === 'function') checkNewGifts();
+        });
+    } else {
+        setTimeout(setupGiftsListener, 500);
+    }
+}
+setupGiftsListener();
+
+// ============ ФУНКЦИИ ДРУЖБЫ ============
+function getFriendshipStatus(email){
+    if(!currentUser) return null;
+    const myKey = emailToKey(currentUser.email);
+    const targetKey = emailToKey(email);
+
+    if(myKey === targetKey) return 'self';
+
+    // Проверяем есть ли дружба
+    const friendKey1 = `${myKey}__${targetKey}`;
+    const friendKey2 = `${targetKey}__${myKey}`;
+
+    if(allFriends[friendKey1] || allFriends[friendKey2]){
+        const friendship = allFriends[friendKey1] || allFriends[friendKey2];
+        if(friendship.status === 'accepted') return 'friend';
+        if(friendship.status === 'pending'){
+            if(friendship.from === myKey) return 'outgoing';
+            return 'incoming';
+        }
+    }
+    return 'none';
+}
+
+async function sendFriendRequest(email){
+    if(!currentUser){alert('Войди!');return;}
+    if(currentUser.banned){alert('Заблокирован!');return;}
+
+    const status = getFriendshipStatus(email);
+    if(status === 'self'){alert('Нельзя добавить себя!');return;}
+    if(status === 'friend'){alert('Уже друзья!');return;}
+    if(status === 'pending' || status === 'outgoing'){alert('Заявка уже отправлена!');return;}
+    if(status === 'incoming'){alert('У тебя есть входящая заявка от этого юзера!');return;}
+
+    const myKey = emailToKey(currentUser.email);
+    const targetKey = emailToKey(email);
+    const friendshipKey = `${myKey}__${targetKey}`;
+
+    await fbWrite(`friends/${friendshipKey}`, {
+        from: myKey,
+        to: targetKey,
+        fromEmail: currentUser.email,
+        toEmail: email,
+        status: 'pending',
+        createdAt: Date.now()
+    });
+
+    alert('✅ Заявка в друзья отправлена!');
+}
+
+async function acceptFriendRequest(friendshipKey){
+    if(!currentUser) return;
+    const friendship = allFriends[friendshipKey];
+    if(!friendship) return;
+    if(emailToKey(currentUser.email) !== friendship.to) return;
+
+    await fbUpdatePath(`friends/${friendshipKey}`, {
+        status: 'accepted',
+        acceptedAt: Date.now()
+    });
+
+    // Показать уведомление отправителю
+    const notif = {
+        userKey: friendship.from,
+        text: `${currentUser.name} принял твою заявку в друзья!`,
+        timestamp: Date.now(),
+        type: 'friend_accepted'
+    };
+    const notifRef = window.fbPush(window.fbRef(window.fbDb, 'notifications'));
+    await window.fbSet(notifRef, notif);
+}
+
+async function declineFriendRequest(friendshipKey){
+    if(!confirm('Отклонить заявку в друзья?')) return;
+    await fbRemovePath(`friends/${friendshipKey}`);
+}
+
+async function removeFriend(friendshipKey){
+    if(!confirm('Удалить из друзей?')) return;
+    await fbRemovePath(`friends/${friendshipKey}`);
+}
+
+async function cancelFriendRequest(friendshipKey){
+    if(!confirm('Отменить свою заявку?')) return;
+    await fbRemovePath(`friends/${friendshipKey}`);
+}
+
+function getFriendsList(){
+    if(!currentUser) return [];
+    const myKey = emailToKey(currentUser.email);
+    const list = [];
+
+    Object.entries(allFriends).forEach(([key, f]) => {
+        if(f.status !== 'accepted') return;
+        if(f.from === myKey){
+            const user = allUsers[f.to];
+            if(user) list.push({user, friendshipKey: key});
+        } else if(f.to === myKey){
+            const user = allUsers[f.from];
+            if(user) list.push({user, friendshipKey: key});
+        }
+    });
+
+    return list;
+}
+
+function getIncomingRequests(){
+    if(!currentUser) return [];
+    const myKey = emailToKey(currentUser.email);
+    const list = [];
+
+    Object.entries(allFriends).forEach(([key, f]) => {
+        if(f.status !== 'pending') return;
+        if(f.to === myKey){
+            const user = allUsers[f.from];
+            if(user) list.push({user, friendshipKey: key});
+        }
+    });
+
+    return list;
+}
+
+function getOutgoingRequests(){
+    if(!currentUser) return [];
+    const myKey = emailToKey(currentUser.email);
+    const list = [];
+
+    Object.entries(allFriends).forEach(([key, f]) => {
+        if(f.status !== 'pending') return;
+        if(f.from === myKey){
+            const user = allUsers[f.to];
+            if(user) list.push({user, friendshipKey: key});
+        }
+    });
+
+    return list;
+}
+
+function updateFriendsCount(){
+    if(!currentUser) return;
+
+    const friendsCount = getFriendsList().length;
+    const incomingCount = getIncomingRequests().length;
+    const outgoingCount = getOutgoingRequests().length;
+
+    // В навбаре
+    const badge = document.getElementById('friends-badge');
+    if(badge){
+        if(incomingCount > 0){
+            badge.textContent = incomingCount;
+            badge.style.display = 'inline-block';
+        } else {
+            badge.style.display = 'none';
+        }
+    }
+
+    // В профиле
+    const myFriendsCount = document.getElementById('my-friends-count');
+    if(myFriendsCount) myFriendsCount.textContent = friendsCount;
+
+    // На табах
+    const tab1 = document.getElementById('friends-count-tab');
+    const tab2 = document.getElementById('incoming-count-tab');
+    const tab3 = document.getElementById('outgoing-count-tab');
+    if(tab1) tab1.textContent = friendsCount;
+    if(tab2) tab2.textContent = incomingCount;
+    if(tab3) tab3.textContent = outgoingCount;
+}
+
+function switchFriendsTab(tab){
+    currentFriendsTab = tab;
+    document.querySelectorAll('.friends-tab').forEach(t => t.classList.remove('active'));
+    event.target.classList.add('active');
+    renderFriendsList();
+}
+
+function renderFriendsList(){
+    const container = document.getElementById('friends-list-container');
+    if(!container) return;
+
+    let list = [];
+    let emptyMsg = '';
+
+    if(currentFriendsTab === 'friends'){
+        list = getFriendsList();
+        emptyMsg = 'У тебя пока нет друзей. Найди пользователей и добавь их!';
+    } else if(currentFriendsTab === 'incoming'){
+        list = getIncomingRequests();
+        emptyMsg = 'Нет входящих заявок в друзья';
+    } else if(currentFriendsTab === 'outgoing'){
+        list = getOutgoingRequests();
+        emptyMsg = 'Нет исходящих заявок';
+    }
+
+    if(list.length === 0){
+        container.innerHTML = `<p style="color:#555;text-align:center;padding:30px;">${emptyMsg}</p>`;
+        return;
+    }
+
+    container.innerHTML = '';
+    list.forEach(({user, friendshipKey}) => {
+        const av = user.avatarImg
+            ? `<img src="${user.avatarImg}">`
+            : (user.avatar || '👤');
+
+        const online = typeof isUserOnline === 'function' && isUserOnline(user.email);
+        const statusText = online ? '🟢 Онлайн' : '⚫ Не в сети';
+
+        let actions = '';
+        if(currentFriendsTab === 'friends'){
+            actions = `
+                <button class="friend-btn chat" onclick="startChatWithFriend('${user.email}')">💬 ЧАТ</button>
+                <button class="friend-btn remove" onclick="removeFriend('${friendshipKey}')">🗑</button>
+            `;
+        } else if(currentFriendsTab === 'incoming'){
+            actions = `
+                <button class="friend-btn accept" onclick="acceptFriendRequest('${friendshipKey}')">✅ ПРИНЯТЬ</button>
+                <button class="friend-btn decline" onclick="declineFriendRequest('${friendshipKey}')">❌ ОТКЛОНИТЬ</button>
+            `;
+        } else if(currentFriendsTab === 'outgoing'){
+            actions = `
+                <button class="friend-btn decline" onclick="cancelFriendRequest('${friendshipKey}')">❌ ОТМЕНИТЬ</button>
+            `;
+        }
+
+        const div = document.createElement('div');
+        div.className = 'friend-item';
+        div.innerHTML = `
+            <div class="friend-item-avatar" onclick="openUserProfile('${user.email}')">${av}</div>
+            <div class="friend-item-info" onclick="openUserProfile('${user.email}')">
+                <div class="friend-item-name">${user.name}</div>
+                <div class="friend-item-status">${statusText}</div>
+            </div>
+            <div class="friend-actions">${actions}</div>
+        `;
+        container.appendChild(div);
+    });
+}
+
+async function startChatWithFriend(email){
+    // Если функция newChat есть — используем её
+    if(typeof openPrivateChat === 'function'){
+        openPrivateChat(email);
+    } else if(typeof newChat === 'function'){
+        showPage('messages');
+        setTimeout(() => {
+            // Попробуем создать чат напрямую
+            const user = Object.values(allUsers).find(u => u.email === email);
+            if(user && typeof openChat === 'function'){
+                const chatId = typeof getChatId === 'function' ? getChatId(currentUser.email, email) : `chat_${emailToKey(currentUser.email)}_${emailToKey(email)}`;
+                openChat(chatId, user);
+            }
+        }, 300);
+    } else {
+        alert('Открой раздел СООБЩЕНИЯ и создай чат');
+        showPage('messages');
+    }
+}
+
+// Уведомления о новых заявках
+let shownFriendNotifications = {};
+function checkNewFriendRequests(){
+    if(!currentUser) return;
+
+    const incoming = getIncomingRequests();
+    incoming.forEach(({user, friendshipKey}) => {
+        if(shownFriendNotifications[friendshipKey]) return;
+        shownFriendNotifications[friendshipKey] = true;
+
+        // Показываем уведомление
+        showFriendNotification(`👥 ${user.name} хочет добавить тебя в друзья!`, () => {
+            showPage('friends');
+            switchFriendsTab('incoming');
+        });
+    });
+}
+
+function showFriendNotification(text, onClick){
+    const notif = document.createElement('div');
+    notif.className = 'notification-friend';
+    notif.innerHTML = text;
+    notif.onclick = () => {
+        if(onClick) onClick();
+        notif.remove();
+    };
+    document.body.appendChild(notif);
+    setTimeout(() => notif.remove(), 8000);
+}
+
+// ============================================
+//  СТЕНА (WALL POSTS)
+// ============================================
+
+async function createWallPost(){
+    if(!currentUser){alert('Войди!');return;}
+    if(currentUser.banned){alert('Заблокирован!');return;}
+
+    const input = document.getElementById('wall-post-input');
+    if(!input) return;
+    const text = input.value.trim();
+    if(!text){alert('Напиши что-нибудь!');return;}
+
+    const post = {
+        authorEmail: currentUser.email,
+        authorName: currentUser.name,
+        authorAvatar: currentUser.avatar || '👤',
+        authorAvatarImg: currentUser.avatarImg || '',
+        wallOwnerEmail: currentUser.email, // На своей стене
+        text: text,
+        likes: {},
+        timestamp: Date.now(),
+        date: new Date().toLocaleString('ru-RU')
+    };
+
+    const newRef = window.fbPush(window.fbRef(window.fbDb, 'wallPosts'));
+    await window.fbSet(newRef, post);
+
+    input.value = '';
+}
+
+async function deleteWallPost(postId){
+    if(!confirm('Удалить пост?')) return;
+    await fbRemovePath(`wallPosts/${postId}`);
+}
+
+async function likeWallPost(postId){
+    if(!currentUser) return;
+    const post = allWallPosts[postId];
+    if(!post) return;
+
+    const myKey = emailToKey(currentUser.email);
+    const likes = post.likes || {};
+
+    if(likes[myKey]){
+        delete likes[myKey];
+    } else {
+        likes[myKey] = true;
+    }
+
+    await fbUpdatePath(`wallPosts/${postId}`, {likes: likes});
+}
+
+function renderWallPosts(){
+    const container = document.getElementById('my-wall-posts');
+    if(!container || !currentUser) return;
+
+    // Показываем только свои посты
+    const myPosts = Object.entries(allWallPosts)
+        .map(([id, p]) => ({...p, id}))
+        .filter(p => p.wallOwnerEmail === currentUser.email)
+        .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+
+    if(myPosts.length === 0){
+        container.innerHTML = '<p style="color:#555;text-align:center;padding:20px;">На твоей стене пока нет постов</p>';
+        return;
+    }
+
+    container.innerHTML = '';
+    myPosts.forEach(post => {
+        const av = post.authorAvatarImg
+            ? `<img src="${post.authorAvatarImg}">`
+            : (post.authorAvatar || '👤');
+
+        const likesCount = post.likes ? Object.keys(post.likes).length : 0;
+        const myKey = emailToKey(currentUser.email);
+        const isLiked = post.likes && post.likes[myKey];
+        const isMyPost = post.authorEmail === currentUser.email;
+
+        const div = document.createElement('div');
+        div.className = 'wall-post';
+        div.innerHTML = `
+            <div class="wall-post-header">
+                <div class="wall-post-avatar" onclick="openUserProfile('${post.authorEmail}')">${av}</div>
+                <div class="wall-post-info">
+                    <div class="wall-post-author" onclick="openUserProfile('${post.authorEmail}')">${post.authorName}</div>
+                    <div class="wall-post-date">${post.date}</div>
+                </div>
+            </div>
+            <div class="wall-post-text">${post.text.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>
+            <div class="wall-post-actions">
+                <button class="wall-post-btn ${isLiked ? 'liked' : ''}" onclick="likeWallPost('${post.id}')">
+                    ${isLiked ? '❤️' : '🤍'} ${likesCount}
+                </button>
+            </div>
+            ${isMyPost ? `<button class="wall-post-delete" onclick="deleteWallPost('${post.id}')">🗑</button>` : ''}
+        `;
+        container.appendChild(div);
+    });
+}
+
+// Показать стену другого пользователя
+function renderUserWall(email){
+    const container = document.getElementById('user-wall-posts');
+    if(!container) return;
+
+    const userPosts = Object.entries(allWallPosts)
+        .map(([id, p]) => ({...p, id}))
+        .filter(p => p.wallOwnerEmail === email)
+        .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+
+    if(userPosts.length === 0){
+        container.innerHTML = '<p style="color:#555;text-align:center;padding:20px;">На этой стене нет постов</p>';
+        return;
+    }
+
+    container.innerHTML = '';
+    userPosts.forEach(post => {
+        const av = post.authorAvatarImg
+            ? `<img src="${post.authorAvatarImg}">`
+            : (post.authorAvatar || '👤');
+
+        const likesCount = post.likes ? Object.keys(post.likes).length : 0;
+        const myKey = currentUser ? emailToKey(currentUser.email) : '';
+        const isLiked = post.likes && post.likes[myKey];
+
+        const div = document.createElement('div');
+        div.className = 'wall-post';
+        div.innerHTML = `
+            <div class="wall-post-header">
+                <div class="wall-post-avatar">${av}</div>
+                <div class="wall-post-info">
+                    <div class="wall-post-author">${post.authorName}</div>
+                    <div class="wall-post-date">${post.date}</div>
+                </div>
+            </div>
+            <div class="wall-post-text">${post.text.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>
+            <div class="wall-post-actions">
+                <button class="wall-post-btn ${isLiked ? 'liked' : ''}" onclick="likeWallPost('${post.id}')">
+                    ${isLiked ? '❤️' : '🤍'} ${likesCount}
+                </button>
+            </div>
+        `;
+        container.appendChild(div);
+    });
+}
+
+// ============================================
+//  ПОДАРКИ
+// ============================================
+
+const GIFT_TYPES = {
+    money10: { icon: '💰', name: '10 РУБЛЕЙ', price: 10, type: 'money', amount: 10 },
+    money25: { icon: '💰', name: '25 РУБЛЕЙ', price: 25, type: 'money', amount: 25 },
+    money50: { icon: '💰', name: '50 РУБЛЕЙ', price: 50, type: 'money', amount: 50 },
+    money100: { icon: '💎', name: '100 РУБЛЕЙ', price: 100, type: 'money', amount: 100 },
+    sub_basic: { icon: '🎬', name: 'BASIC ПОДПИСКА', price: 15, type: 'subscription', level: 'basic' },
+    sub_lux: { icon: '💎', name: 'LUX ПОДПИСКА', price: 30, type: 'subscription', level: 'lux' },
+    sub_pro: { icon: '👑', name: 'PRO ПОДПИСКА', price: 60, type: 'subscription', level: 'pro' },
+    heart: { icon: '❤️', name: 'СЕРДЕЧКО', price: 5, type: 'virtual' },
+    star: { icon: '⭐', name: 'ЗВЕЗДА', price: 10, type: 'virtual' },
+    crown: { icon: '👑', name: 'КОРОНА', price: 20, type: 'virtual' },
+    diamond: { icon: '💎', name: 'БРИЛЛИАНТ', price: 50, type: 'virtual' },
+    rose: { icon: '🌹', name: 'РОЗА', price: 15, type: 'virtual' }
+};
+
+let selectedGiftType = null;
+
+function openGiftModal(recipientEmail){
+    if(!currentUser){alert('Войди!');return;}
+    if(recipientEmail === currentUser.email){alert('Нельзя подарить себе!');return;}
+
+    const recipient = Object.values(allUsers).find(u => u.email === recipientEmail);
+    if(!recipient){alert('Пользователь не найден!');return;}
+
+    document.getElementById('gift-recipient-email').value = recipientEmail;
+
+    const av = recipient.avatarImg
+        ? `<img src="${recipient.avatarImg}" style="width:40px;height:40px;border-radius:50%;object-fit:cover;">`
+        : `<span style="font-size:2rem;">${recipient.avatar || '👤'}</span>`;
+
+    document.getElementById('gift-recipient-info').innerHTML = `
+        ${av}
+        <div>
+            <div style="font-weight:700;">Кому: ${recipient.name}</div>
+            <div style="color:#888;font-size:0.85rem;">${recipient.email}</div>
+        </div>
+    `;
+
+    // Рендерим типы подарков
+    renderGiftTypes();
+
+    selectedGiftType = null;
+    document.getElementById('gift-message').value = '';
+    document.getElementById('gift-modal').classList.add('show');
+}
+
+function renderGiftTypes(){
+    const container = document.getElementById('gift-types-container');
+    if(!container) return;
+
+    const myBalance = currentUser.wallet && currentUser.wallet.RUB ? currentUser.wallet.RUB : 0;
+
+    container.innerHTML = '';
+    Object.entries(GIFT_TYPES).forEach(([id, gift]) => {
+        const div = document.createElement('div');
+        div.className = 'gift-type';
+        const canAfford = myBalance >= gift.price;
+        div.style.opacity = canAfford ? '1' : '0.4';
+        div.style.cursor = canAfford ? 'pointer' : 'not-allowed';
+        div.innerHTML = `
+            <div class="gift-type-icon">${gift.icon}</div>
+            <div class="gift-type-name">${gift.name}</div>
+            <div class="gift-type-price">${gift.price} ₽</div>
+        `;
+        if(canAfford){
+            div.onclick = () => selectGiftType(id, div);
+        } else {
+            div.onclick = () => alert('Недостаточно средств!');
+        }
+        container.appendChild(div);
+    });
+}
+
+function selectGiftType(id, element){
+    selectedGiftType = id;
+    document.querySelectorAll('.gift-type').forEach(el => el.classList.remove('selected'));
+    element.classList.add('selected');
+}
+
+function closeGiftModal(){
+    document.getElementById('gift-modal').classList.remove('show');
+    selectedGiftType = null;
+}
+
+async function sendGift(){
+    if(!currentUser){alert('Войди!');return;}
+    if(!selectedGiftType){alert('Выбери подарок!');return;}
+
+    const recipientEmail = document.getElementById('gift-recipient-email').value;
+    if(!recipientEmail) return;
+
+    const gift = GIFT_TYPES[selectedGiftType];
+    if(!gift) return;
+
+    const myBalance = currentUser.wallet && currentUser.wallet.RUB ? currentUser.wallet.RUB : 0;
+    if(myBalance < gift.price){
+        alert('Недостаточно средств!');
+        return;
+    }
+
+    if(!confirm(`Подарить "${gift.name}" за ${gift.price} ₽?`)) return;
+
+    const message = document.getElementById('gift-message').value.trim();
+    const recipient = Object.values(allUsers).find(u => u.email === recipientEmail);
+    if(!recipient) return;
+
+    // Снимаем деньги с отправителя
+    const newBalance = myBalance - gift.price;
+    await fbUpdatePath(`users/${emailToKey(currentUser.email)}/wallet`, {
+        ...currentUser.wallet,
+        RUB: newBalance
+    });
+
+    // Даём подарок получателю
+    const recipientKey = emailToKey(recipientEmail);
+    if(gift.type === 'money'){
+        // Деньги
+        const currentBalance = recipient.wallet && recipient.wallet.RUB ? recipient.wallet.RUB : 0;
+        await fbUpdatePath(`users/${recipientKey}/wallet`, {
+            ...recipient.wallet,
+            RUB: currentBalance + gift.amount
+        });
+    } else if(gift.type === 'subscription'){
+        // Подписка
+        await fbUpdatePath(`users/${recipientKey}`, {
+            subscription: gift.level
+        });
+    }
+    // virtual — просто уведомление
+
+    // Записываем подарок
+    const giftData = {
+        from: currentUser.email,
+        fromName: currentUser.name,
+        to: recipientEmail,
+        giftType: selectedGiftType,
+        giftIcon: gift.icon,
+        giftName: gift.name,
+        message: message,
+        timestamp: Date.now(),
+        seen: false
+    };
+    const giftRef = window.fbPush(window.fbRef(window.fbDb, 'gifts'));
+    await window.fbSet(giftRef, giftData);
+
+    closeGiftModal();
+    alert(`✅ Подарок "${gift.name}" отправлен ${recipient.name}!`);
+}
+
+// Проверка новых подарков
+let shownGiftNotifications = {};
+function checkNewGifts(){
+    if(!currentUser) return;
+
+    Object.entries(allGifts).forEach(([id, gift]) => {
+        if(gift.to !== currentUser.email) return;
+        if(gift.seen) return;
+        if(shownGiftNotifications[id]) return;
+
+        shownGiftNotifications[id] = true;
+        showGiftReceived(id, gift);
+    });
+}
+
+function showGiftReceived(id, gift){
+    const modal = document.getElementById('gift-received-modal');
+    const content = document.getElementById('gift-received-content');
+    if(!modal || !content) return;
+
+    content.innerHTML = `
+        <div style="font-size:4rem;margin:10px 0;">${gift.giftIcon}</div>
+        <div style="font-size:1.3rem;margin:10px 0;"><b>${gift.giftName}</b></div>
+        <div style="margin:15px 0;">От: <b>${gift.fromName}</b></div>
+        ${gift.message ? `<div style="background:rgba(0,0,0,0.3);padding:10px;border-radius:8px;margin-top:15px;font-style:italic;">"${gift.message.replace(/</g,'&lt;')}"</div>` : ''}
+    `;
+
+    modal.classList.add('show');
+    modal.dataset.giftId = id;
+}
+
+async function closeGiftReceivedModal(){
+    const modal = document.getElementById('gift-received-modal');
+    const giftId = modal.dataset.giftId;
+    if(giftId){
+        await fbUpdatePath(`gifts/${giftId}`, {seen: true});
+    }
+    modal.classList.remove('show');
+}
+// ============================================
+//  ИНТЕГРАЦИЯ: ПРОФИЛЬ + SHOWPAGE + ДРУЗЬЯ
+// ============================================
+
+// Обновляем showPage для новых страниц
+if(typeof showPage === 'function'){
+    const origShowPage = showPage;
+    showPage = function(pageId){
+        origShowPage(pageId);
+        if(pageId === 'friends'){
+            updateFriendsCount();
+            renderFriendsList();
+        }
+        if(pageId === 'profile'){
+            renderWallPosts();
+            updateFriendsCount();
+        }
+    };
+}
+
+// Обновляем loginSuccess
+if(typeof loginSuccess === 'function'){
+    const origLoginSuccess = loginSuccess;
+    loginSuccess = function(){
+        origLoginSuccess();
+        updateFriendsCount();
+        checkNewGifts();
+        checkNewFriendRequests();
+        renderWallPosts();
+    };
+}
+
+// Обновляем openUserProfile для друзей + подарков + стены
+if(typeof openUserProfile === 'function'){
+    const origOpenUserProfile = openUserProfile;
+    openUserProfile = function(email){
+        const user = allUsers[emailToKey(email)];
+        if(!user) return;
+        const isMe = currentUser && user.email === currentUser.email;
+
+        // Определяем статус дружбы
+        const friendStatus = getFriendshipStatus(email);
+        const following = typeof isFollowing === 'function' && isFollowing(email);
+
+        const av = user.avatarImg
+            ? `<img src="${user.avatarImg}" style="width:100%;height:100%;object-fit:cover;">`
+            : (user.avatar || '👤');
+
+        let badge = '';
+        if(user.isAdmin) badge = '<span class="badge-admin">🔧 АДМИН</span>';
+        else if(user.subscription === 'rapport') badge = '<span class="badge-rapport">🛡️ RAPPORT</span>';
+        else if(user.subscription === 'pro') badge = '<span class="badge-pro">👑 PRO</span>';
+        else if(user.subscription === 'lux') badge = '<span class="badge-lux">💎 LUX</span>';
+        else if(user.subscription === 'basic' || user.subscription === true) badge = '<span class="badge-basic">🎬 BASIC</span>';
+        else if(user.subscription === 'pissing') badge = '<span class="badge-pissing">💧 ПИСАЮЩИЙ</span>';
+
+        let nickStyle = '';
+        if(user.nickColor && user.nickColor !== 'default'){
+            const col = NICK_COLORS.find(c => c.id === user.nickColor);
+            if(col){
+                if(col.color === 'rainbow'){
+                    nickStyle = `background:linear-gradient(135deg,#ff0000,#ff7f00,#ffff00,#00ff00,#0000ff,#4b0082,#9400d3);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;font-weight:700;`;
+                } else {
+                    nickStyle = `color:${col.color};text-shadow:0 0 15px ${col.color};font-weight:700;`;
+                }
+            }
+        }
+
+        const online = typeof isUserOnline === 'function' && isUserOnline(email);
+        const onlineText = online ? '<span class="friend-status-dot"></span> Онлайн' : '<span class="friend-status-dot offline"></span> Не в сети';
+
+        // Кнопки действий
+        let friendBtn = '';
+        if(!isMe){
+            if(friendStatus === 'friend'){
+                friendBtn = '<button class="add-friend-btn friend" disabled>✅ ДРУЗЬЯ</button>';
+            } else if(friendStatus === 'outgoing'){
+                friendBtn = '<button class="add-friend-btn pending" disabled>⏳ ЗАЯВКА ОТПРАВЛЕНА</button>';
+            } else if(friendStatus === 'incoming'){
+                friendBtn = '<button class="add-friend-btn" onclick="showPage(\'friends\')">📥 ПРИНЯТЬ ЗАЯВКУ</button>';
+            } else {
+                friendBtn = `<button class="add-friend-btn" onclick="sendFriendRequest('${email}')">➕ ДОБАВИТЬ В ДРУЗЬЯ</button>`;
+            }
+        }
+
+        let followBtn = '';
+        if(!isMe){
+            followBtn = `<button class="follow-btn ${following ? 'following' : ''}" onclick="followUser('${email}');setTimeout(()=>openUserProfile('${email}'),300);">${following ? '✓ ПОДПИСАН' : '➕ ПОДПИСАТЬСЯ'}</button>`;
+        }
+
+        let chatBtn = '';
+        if(!isMe){
+            chatBtn = `<button class="follow-btn" style="background:var(--blue);" onclick="closeUserProfile();startChatWith('${email}');">💬 НАПИСАТЬ</button>`;
+        }
+
+        let giftBtn = '';
+        if(!isMe){
+            giftBtn = `<button class="gift-btn" onclick="closeUserProfile();openGiftModal('${email}');">🎁 ПОДАРИТЬ</button>`;
+        }
+
+        // Стена пользователя
+        const wallPosts = Object.entries(allWallPosts)
+            .map(([id, p]) => ({...p, id}))
+            .filter(p => p.wallOwnerEmail === email)
+            .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0))
+            .slice(0, 5);
+
+        let wallHTML = '';
+        if(wallPosts.length > 0){
+            wallHTML = '<div style="margin-top:20px;text-align:left;">';
+            wallHTML += '<div style="font-family:\'Bebas Neue\';letter-spacing:2px;color:var(--gold);margin-bottom:10px;">📮 СТЕНА</div>';
+            wallPosts.forEach(post => {
+                const postLikes = post.likes ? Object.keys(post.likes).length : 0;
+                const myKey = currentUser ? emailToKey(currentUser.email) : '';
+                const postLiked = post.likes && post.likes[myKey];
+                wallHTML += `
+                    <div class="wall-post" style="margin-bottom:10px;">
+                        <div class="wall-post-text" style="font-size:0.9rem;">${post.text.replace(/</g,'&lt;').substring(0, 200)}</div>
+                        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;">
+                            <button class="wall-post-btn ${postLiked ? 'liked' : ''}" onclick="likeWallPost('${post.id}')">${postLiked ? '❤️' : '🤍'} ${postLikes}</button>
+                            <span style="color:#555;font-size:0.75rem;">${post.date}</span>
+                        </div>
+                    </div>
+                `;
+            });
+            wallHTML += '</div>';
+        }
+
+        document.getElementById('user-profile-body').innerHTML = `
+            <div style="width:120px;height:120px;border-radius:50%;margin:0 auto 15px;border:3px solid var(--red);display:flex;align-items:center;justify-content:center;font-size:4rem;background:#111;overflow:hidden;">${av}</div>
+            <div style="font-size:0.85rem;color:#888;margin-bottom:5px;">${onlineText}</div>
+            <h2 style="font-family:'Bebas Neue';font-size:2rem;letter-spacing:3px;margin-bottom:5px;${nickStyle}">${user.name}</h2>
+            <p style="color:#666;margin-bottom:10px;">${user.email}</p>
+            <div style="margin:10px 0;">${badge}</div>
+            <p style="color:#999;font-style:italic;margin:15px 0;">${user.bio || 'Нет описания'}</p>
+            ${user.birthday ? `<div style="color:#888;font-size:0.85rem;">🎂 День рождения: ${user.birthday}</div>` : ''}
+            <div class="profile-stats" style="margin:15px auto;">
+                <div class="profile-stat" onclick="showFollowers('${email}')">
+                    <div class="profile-stat-number">${typeof getFollowersCount === 'function' ? getFollowersCount(email) : 0}</div>
+                    <div class="profile-stat-label">ПОДПИСЧИКИ</div>
+                </div>
+                <div class="profile-stat" onclick="showFollowing('${email}')">
+                    <div class="profile-stat-number">${typeof getFollowingCount === 'function' ? getFollowingCount(email) : 0}</div>
+                    <div class="profile-stat-label">ПОДПИСКИ</div>
+                </div>
+            </div>
+            <div style="display:flex;flex-wrap:wrap;justify-content:center;gap:5px;margin:15px 0;">
+                ${friendBtn}
+                ${followBtn}
+                ${chatBtn}
+                ${giftBtn}
+            </div>
+            ${wallHTML}
+        `;
+        document.getElementById('user-profile-modal').classList.add('show');
+    };
+}
+
+// Писать пост на стене другого пользователя
+async function writeWallPost(targetEmail){
+    if(!currentUser){alert('Войди!');return;}
+    if(currentUser.banned){alert('Заблокирован!');return;}
+
+    const text = prompt('Напиши на стене:');
+    if(!text || !text.trim()) return;
+
+    const post = {
+        authorEmail: currentUser.email,
+        authorName: currentUser.name,
+        authorAvatar: currentUser.avatar || '👤',
+        authorAvatarImg: currentUser.avatarImg || '',
+        wallOwnerEmail: targetEmail,
+        text: text.trim().substring(0, 500),
+        likes: {},
+        timestamp: Date.now(),
+        date: new Date().toLocaleString('ru-RU')
+    };
+
+    const newRef = window.fbPush(window.fbRef(window.fbDb, 'wallPosts'));
+    await window.fbSet(newRef, post);
+
+    alert('✅ Пост опубликован!');
+}
+
+// ============================================
+//  PUSH УВЕДОМЛЕНИЯ (БРАУЗЕР)
+// ============================================
+
+async function requestPushPermission(){
+    if(!('Notification' in window)){
+        console.log('Push не поддерживается');
+        return false;
+    }
+
+    if(Notification.permission === 'granted') return true;
+
+    if(Notification.permission !== 'denied'){
+        const result = await Notification.requestPermission();
+        return result === 'granted';
+    }
+
+    return false;
+}
+
+function sendPushNotification(title, body, icon){
+    if(Notification.permission !== 'granted') return;
+    if(document.hasFocus()) return; // Не показываем если сайт открыт
+
+    try {
+        new Notification(title, {
+            body: body,
+            icon: icon || 'https://github.com/ivansabaev04-svg/theded-videos/releases/download/v1/icon.png',
+            badge: 'https://github.com/ivansabaev04-svg/theded-videos/releases/download/v1/icon.png'
+        });
+    } catch(e){
+        console.log('Push ошибка:', e);
+    }
+}
+
+// Запрашиваем разрешение при входе
+setTimeout(() => {
+    if(currentUser){
+        requestPushPermission();
+    }
+}, 5000);
+
+// Слушаем новые сообщения для push
+let lastMessageTimestamp = Date.now();
+setInterval(() => {
+    if(!currentUser) return;
+    if(Notification.permission !== 'granted') return;
+
+    // Проверяем новые сообщения
+    const myKey = emailToKey(currentUser.email);
+    Object.entries(allMessages).forEach(([chatId, messages]) => {
+        if(chatId.startsWith('group_')){
+            // Групповые
+            const groupId = chatId.replace('group_','');
+            const group = allGroups ? allGroups[groupId] : null;
+            if(!group || !group.members || !group.members[myKey]) return;
+            Object.values(messages).forEach(m => {
+                if(m.from !== currentUser.email && m.timestamp > lastMessageTimestamp){
+                    if(!m.readBy || !m.readBy[myKey]){
+                        sendPushNotification(
+                            `${m.authorName || 'Кто-то'} в ${group.name || 'группе'}`,
+                            m.text || (m.type === 'photo' ? '📸 Фото' : m.type === 'voice' ? '🎤 Голосовое' : m.type === 'sticker' ? m.sticker : 'Новое сообщение')
+                        );
+                    }
+                }
+            });
+        } else if(chatId.includes(myKey)){
+            // Личные
+            Object.values(messages).forEach(m => {
+                if(m.to === currentUser.email && m.timestamp > lastMessageTimestamp && !m.read){
+                    const sender = allUsers[emailToKey(m.from)];
+                    sendPushNotification(
+                        sender ? sender.name : 'Новое сообщение',
+                        m.text || (m.type === 'photo' ? '📸 Фото' : m.type === 'voice' ? '🎤 Голосовое' : m.type === 'sticker' ? m.sticker : 'Сообщение')
+                    );
+                }
+            });
+        }
+    });
+
+    lastMessageTimestamp = Date.now();
+}, 10000);
+
+// ============================================
+//  АНИМАЦИИ ПЕРЕХОДОВ
+// ============================================
+
+// Добавляем плавные анимации при переключении страниц
+const style = document.createElement('style');
+style.textContent = `
+    .page {
+        animation: pageSlideIn 0.3s ease !important;
+    }
+    @keyframes pageSlideIn {
+        from {
+            opacity: 0;
+            transform: translateY(15px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .folder, .ep-card, .friend-item, .wall-post, .news-item, .top-user-item {
+        animation: itemFadeIn 0.4s ease forwards;
+        opacity: 0;
+    }
+
+    @keyframes itemFadeIn {
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        from {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+    }
+
+    .notification-friend {
+        animation: slideInRight 0.5s ease !important;
+    }
+
+    @keyframes slideInRight {
+        from { transform: translateX(120%); opacity: 0; }
+        to { transform: translateX(0); opacity: 1; }
+    }
+
+    .msg-bubble {
+        animation: msgAppear 0.3s ease;
+    }
+
+    @keyframes msgAppear {
+        from { opacity: 0; transform: scale(0.9); }
+        to { opacity: 1; transform: scale(1); }
+    }
+
+    .login-box, .sub-ad-box, .gift-content, .warn-modal-box, .gift-received-box {
+        animation: modalPop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important;
+    }
+
+    @keyframes modalPop {
+        from { opacity: 0; transform: scale(0.7); }
+        to { opacity: 1; transform: scale(1); }
+    }
+
+    nav {
+        animation: navSlideDown 0.5s ease;
+    }
+
+    @keyframes navSlideDown {
+        from { transform: translateY(-100%); }
+        to { transform: translateY(0); }
+    }
+
+    .btn:active, .action-btn:active, .login-btn:active {
+        transform: scale(0.95) !important;
+    }
+`;
+document.head.appendChild(style);
+
+// Stagger animation для списков
+function addStaggerAnimation(selector){
+    const items = document.querySelectorAll(selector);
+    items.forEach((item, i) => {
+        item.style.animationDelay = `${i * 0.05}s`;
+    });
+}
+
+// Применяем stagger при смене страниц
+const origShowPage2 = showPage;
+showPage = function(pageId){
+    origShowPage2(pageId);
+
+    setTimeout(() => {
+        addStaggerAnimation('.folder');
+        addStaggerAnimation('.ep-card');
+        addStaggerAnimation('.friend-item');
+        addStaggerAnimation('.wall-post');
+        addStaggerAnimation('.news-item');
+        addStaggerAnimation('.top-user-item');
+    }, 100);
+};
+// ============ ФИКС СЕРИЙ — ЗАЛИВАЕМ 50 СЕРИЙ В FIREBASE ============
+async function fixAllEpisodes(){
+    if(!firebaseReady) return;
+
+    // Проверяем есть ли уже серии в Firebase
+    const existing = await fbReadOnce('serials/the-ded/episodes');
+    if(existing && Object.keys(existing).length >= 50){
+        return; // Уже есть
+    }
+
+    console.log('Заливаем 50 серий THE DED в Firebase...');
+
+    const episodes = {};
+    for(let i = 1; i <= 50; i++){
+        episodes[i] = `https://github.com/ivansabaev04-svg/theded-videos/releases/download/v1/${i}.mp4`;
+    }
+
+    await fbWrite('serials/the-ded', {
+        name: 'THE DED',
+        icon: '📁',
+        vip: false,
+        poster: 'https://github.com/ivansabaev04-svg/theded-videos/releases/download/v1/poster.png',
+        createdAt: Date.now(),
+        episodes: episodes
+    });
+
+    console.log('✅ 50 серий залито!');
+}
+
+// Также фиксим updateSerialsFromFirebase чтобы НЕ обнуляла totalEps
+if(typeof updateSerialsFromFirebase === 'function'){
+    const origUpdateSerials = updateSerialsFromFirebase;
+    updateSerialsFromFirebase = function(){
+        Object.entries(allSerialsData).forEach(([id, data]) => {
+            if(data.episodes){
+                Object.entries(data.episodes).forEach(([num, url]) => {
+                    VIDEO_URLS[num] = url;
+                });
+            }
+
+            const existing = SERIALS.find(s => s.id === id);
+            if(!existing){
+                SERIALS.push({
+                    id: id,
+                    name: data.name || id,
+                    icon: data.icon || '🎬',
+                    totalEps: data.episodes ? Object.keys(data.episodes).length : 0,
+                    subOnly: data.vip || false,
+                    earlyEps: [],
+                    poster: data.poster || null
+                });
+            } else {
+                // НЕ трогаем totalEps для THE DED!
+                existing.name = data.name || existing.name;
+                existing.icon = data.icon || existing.icon;
+                existing.subOnly = data.vip !== undefined ? data.vip : existing.subOnly;
+                existing.poster = data.poster || existing.poster;
+
+                // Обновляем totalEps ТОЛЬКО если в Firebase больше серий
+                if(data.episodes){
+                    const fbEpCount = Object.keys(data.episodes).length;
+                    if(fbEpCount > existing.totalEps){
+                        existing.totalEps = fbEpCount;
+                    }
+                }
+            }
+        });
+    };
+}
+
+// Запускаем фикс через 3 секунды после загрузки
+setTimeout(() => {
+    fixAllEpisodes();
+}, 3000);
