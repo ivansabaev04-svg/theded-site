@@ -268,6 +268,7 @@
                 <button class="nav-tab active" id="btn-home" onclick="showPage('home')">ГЛАВНАЯ</button>
                 <button class="nav-tab" id="btn-all" onclick="showPage('all')">СЕРИИ</button>
                 <button class="nav-tab" id="btn-profile" onclick="showPage('profile')">ПРОФИЛЬ</button>
+                <button class="nav-tab" id="btn-friends" onclick="showPage('friends')">👥 ДРУЗЬЯ <span class="badge-new" id="friends-badge" style="display:none;">0</span></button>
                 <button class="nav-tab" id="btn-support" onclick="showPage('support')">📨 ПОДДЕРЖКА</button>
                 <button class="nav-tab" id="btn-messages" onclick="showPage('messages')">💬 СООБЩЕНИЯ <span class="badge-new" id="messages-badge" style="display:none;">0</span></button>
                 <button class="nav-tab" id="btn-news" onclick="showPage('news')">📢 НОВОСТИ <span class="badge-new" id="news-badge" style="display:none;">0</span></button>
@@ -361,7 +362,22 @@
                     <div class="profile-stat-number" id="my-following-count">0</div>
                     <div class="profile-stat-label">ПОДПИСКИ</div>
                 </div>
+                <div class="profile-stat" onclick="showPage('friends')">
+                    <div class="profile-stat-number" id="my-friends-count">0</div>
+                    <div class="profile-stat-label">ДРУЗЬЯ</div>
+                </div>
             </div>
+
+            <!-- МОЯ СТЕНА -->
+            <div class="wall-section">
+                <div class="wall-title">📮 МОЯ СТЕНА</div>
+                <div class="wall-create">
+                    <textarea id="wall-post-input" placeholder="Что нового?" maxlength="500"></textarea>
+                    <button class="wall-create-btn" onclick="createWallPost()">📤 ОПУБЛИКОВАТЬ</button>
+                </div>
+                <div id="my-wall-posts"></div>
+            </div>
+
             <div class="promo-section">
                 <div class="promo-title">🎁 ВВЕСТИ ПРОМОКОД</div>
                 <div class="promo-input-group">
@@ -395,6 +411,21 @@
             <div class="settings-section" style="margin-top:30px;">
                 <div class="settings-title" style="color:var(--gold);">👑 ПОДПИСКИ</div>
                 <div id="sub-buy-area"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ДРУЗЬЯ -->
+    <div id="page-friends" class="page">
+        <h2 class="section-header">👥 МОИ ДРУЗЬЯ</h2>
+        <div style="max-width:800px;margin:0 auto;">
+            <div class="friends-section">
+                <div class="friends-tabs">
+                    <button class="friends-tab active" onclick="switchFriendsTab('friends')">👥 ДРУЗЬЯ <span class="count-badge" id="friends-count-tab">0</span></button>
+                    <button class="friends-tab" onclick="switchFriendsTab('incoming')">📥 ВХОДЯЩИЕ <span class="count-badge" id="incoming-count-tab">0</span></button>
+                    <button class="friends-tab" onclick="switchFriendsTab('outgoing')">📤 ИСХОДЯЩИЕ <span class="count-badge" id="outgoing-count-tab">0</span></button>
+                </div>
+                <div id="friends-list-container"></div>
             </div>
         </div>
     </div>
@@ -581,6 +612,31 @@
                 <button class="action-btn green" style="flex:1;" onclick="sendChatPoll()">📤 ОТПРАВИТЬ ОПРОС</button>
                 <button class="action-btn gray" onclick="closeChatPollModal()">ОТМЕНА</button>
             </div>
+        </div>
+    </div>
+
+    <!-- МОДАЛКА ПОДАРКА -->
+    <div class="gift-modal" id="gift-modal">
+        <div class="gift-content">
+            <div class="gift-title">🎁 ПОДАРИТЬ ПОДАРОК</div>
+            <div class="gift-recipient-info" id="gift-recipient-info"></div>
+            <input type="hidden" id="gift-recipient-email">
+            <p style="color:#888;font-size:0.9rem;margin-bottom:10px;">Выбери тип подарка:</p>
+            <div class="gift-types" id="gift-types-container"></div>
+            <p style="color:#888;font-size:0.9rem;">Твоё сообщение (необязательно):</p>
+            <textarea class="gift-message" id="gift-message" placeholder="С днём рождения!" maxlength="200"></textarea>
+            <button class="gift-send-btn" id="gift-send-btn" onclick="sendGift()">🎁 ОТПРАВИТЬ ПОДАРОК</button>
+            <button class="search-close" style="margin-top:10px;" onclick="closeGiftModal()">ОТМЕНА</button>
+        </div>
+    </div>
+
+    <!-- МОДАЛКА ПОЛУЧЕННОГО ПОДАРКА -->
+    <div class="gift-received-modal" id="gift-received-modal">
+        <div class="gift-received-box">
+            <div class="gift-received-icon">🎁</div>
+            <div class="gift-received-title">ТЕБЕ ПОДАРОК!</div>
+            <div id="gift-received-content" style="font-size:1.1rem;line-height:1.5;"></div>
+            <button class="gift-received-close" onclick="closeGiftReceivedModal()">СПАСИБО!</button>
         </div>
     </div>
 
