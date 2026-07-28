@@ -681,6 +681,36 @@
                 <div class="game-name">ВИКТОРИНА</div>
                 <div class="game-desc">Проверь свои знания!</div>
             </div>
+                        <div class="game-card" onclick="openSnake()">
+                <div class="game-icon">🐍</div>
+                <div class="game-name">ЗМЕЙКА</div>
+                <div class="game-desc">Классика!</div>
+            </div>
+            <div class="game-card" onclick="openMemory()">
+                <div class="game-icon">🃏</div>
+                <div class="game-name">МЕМОРИ</div>
+                <div class="game-desc">Найди пары</div>
+            </div>
+            <div class="game-card" onclick="openClicker()">
+                <div class="game-icon">👆</div>
+                <div class="game-name">КЛИКЕР</div>
+                <div class="game-desc">Кликай быстрее!</div>
+            </div>
+            <div class="game-card" onclick="openReactionGame()">
+                <div class="game-icon">⚡</div>
+                <div class="game-name">РЕАКЦИЯ</div>
+                <div class="game-desc">Проверь скорость</div>
+            </div>
+            <div class="game-card" onclick="openNumberGame()">
+                <div class="game-icon">🔢</div>
+                <div class="game-name">2048</div>
+                <div class="game-desc">Собери 2048!</div>
+            </div>
+            <div class="game-card" onclick="openRPS()">
+                <div class="game-icon">✊</div>
+                <div class="game-name">КАМЕНЬ-НОЖНИЦЫ</div>
+                <div class="game-desc">Против компа</div>
+            </div>
         </div>
     </div>
 </div>
@@ -788,6 +818,92 @@
     </div>
 </div>
 <!-- РАМКИ АВАТАРОК (секция в профиле уже есть — добавим через JS) -->
-    <script src="script.js"></script>
+    <script src="script.js"></script><div class="game-modal" id="snake-modal">
+    <div class="game-content">
+        <div class="game-title">🐍 ЗМЕЙКА</div>
+        <div id="snake-score" style="font-family:'Bebas Neue';color:var(--gold);font-size:1.3rem;">Очки: 0</div>
+        <div class="snake-board" id="snake-board"></div>
+        <div class="tetris-controls">
+            <button class="tetris-btn" onclick="snakeDir('left')">◀</button>
+            <button class="tetris-btn" onclick="snakeDir('up')">▲</button>
+            <button class="tetris-btn" onclick="snakeDir('down')">▼</button>
+            <button class="tetris-btn" onclick="snakeDir('right')">▶</button>
+        </div>
+        <button class="btn" onclick="resetSnake()" style="margin-top:10px;">🔄 ЗАНОВО</button>
+        <button class="btn btn-outline" onclick="closeSnake()" style="margin-top:5px;">ВЫЙТИ</button>
+    </div>
+</div>
+
+<div class="game-modal" id="memory-modal">
+    <div class="game-content">
+        <div class="game-title">🃏 МЕМОРИ</div>
+        <div id="memory-info" style="color:#888;margin-bottom:10px;">Найди все пары!</div>
+        <div class="memory-board" id="memory-board"></div>
+        <button class="btn" onclick="resetMemory()" style="margin-top:10px;">🔄 ЗАНОВО</button>
+        <button class="btn btn-outline" onclick="closeMemory()" style="margin-top:5px;">ВЫЙТИ</button>
+    </div>
+</div>
+
+<div class="game-modal" id="clicker-modal">
+    <div class="game-content">
+        <div class="game-title">👆 КЛИКЕР</div>
+        <div class="clicker-area">
+            <div class="clicker-timer" id="clicker-timer">10 сек</div>
+            <div class="clicker-score" id="clicker-score">0</div>
+            <div class="clicker-target" id="clicker-target" onclick="clickerClick()">👆</div>
+            <button class="btn" onclick="startClicker()">▶ СТАРТ</button>
+        </div>
+        <button class="btn btn-outline" onclick="closeClicker()" style="margin-top:10px;">ВЫЙТИ</button>
+    </div>
+</div>
+
+<div class="game-modal" id="reaction-modal">
+    <div class="game-content">
+        <div class="game-title">⚡ РЕАКЦИЯ</div>
+        <div class="reaction-game-area">
+            <div id="reaction-info" style="color:#888;">Нажми когда круг станет ЗЕЛЁНЫМ!</div>
+            <div class="reaction-circle waiting" id="reaction-circle" onclick="reactionClick()">ЖДИТЕ</div>
+            <div id="reaction-result" class="rps-result"></div>
+            <button class="btn" onclick="startReaction()">▶ СТАРТ</button>
+        </div>
+        <button class="btn btn-outline" onclick="closeReaction()" style="margin-top:10px;">ВЫЙТИ</button>
+    </div>
+</div>
+
+<div class="game-modal" id="number-modal">
+    <div class="game-content">
+        <div class="game-title">🔢 2048</div>
+        <div id="number-score" style="font-family:'Bebas Neue';color:var(--gold);font-size:1.3rem;">Очки: 0</div>
+        <div class="number-board" id="number-board"></div>
+        <div class="tetris-controls" style="margin-top:10px;">
+            <button class="tetris-btn" onclick="numberMove('left')">◀</button>
+            <button class="tetris-btn" onclick="numberMove('up')">▲</button>
+            <button class="tetris-btn" onclick="numberMove('down')">▼</button>
+            <button class="tetris-btn" onclick="numberMove('right')">▶</button>
+        </div>
+        <div style="color:#555;font-size:0.8rem;margin-top:5px;">Или стрелки на клавиатуре</div>
+        <button class="btn" onclick="resetNumberGame()" style="margin-top:10px;">🔄 ЗАНОВО</button>
+        <button class="btn btn-outline" onclick="closeNumberGame()" style="margin-top:5px;">ВЫЙТИ</button>
+    </div>
+</div>
+
+<div class="game-modal" id="rps-modal">
+    <div class="game-content">
+        <div class="game-title">✊ КАМЕНЬ-НОЖНИЦЫ-БУМАГА</div>
+        <div class="rps-score-board">
+            <div class="rps-score-item"><div class="rps-score-num" id="rps-wins">0</div><div class="rps-score-label">ПОБЕДЫ</div></div>
+            <div class="rps-score-item"><div class="rps-score-num" id="rps-draws">0</div><div class="rps-score-label">НИЧЬИ</div></div>
+            <div class="rps-score-item"><div class="rps-score-num" id="rps-losses">0</div><div class="rps-score-label">ПОРАЖЕНИЯ</div></div>
+        </div>
+        <div class="rps-result" id="rps-result">Выбери!</div>
+        <div id="rps-display" style="text-align:center;font-size:3rem;margin:10px 0;min-height:60px;"></div>
+        <div class="rps-choices" id="rps-choices">
+            <div class="rps-choice" onclick="playRPS('rock')">✊</div>
+            <div class="rps-choice" onclick="playRPS('scissors')">✌️</div>
+            <div class="rps-choice" onclick="playRPS('paper')">🖐️</div>
+        </div>
+        <button class="btn btn-outline" onclick="closeRPS()" style="margin-top:15px;">ВЫЙТИ</button>
+    </div>
+</div>
 </body>
 </html>
