@@ -6511,3 +6511,1058 @@ function updateRPSScore(){
     document.getElementById('rps-draws').textContent=rpsDraws;
     document.getElementById('rps-losses').textContent=rpsLosses;
 }
+// ============================================
+//  КУРСОРЫ + БИРЖА + ИВЕНТЫ + ДАШБОРД + РАССЫЛКА + ПАСХАЛКА
+// ============================================
+
+// ============ КУРСОРЫ ============
+const CURSORS = [
+    {id:'default',name:'ОБЫЧНЫЙ',icon:'🖱️',css:'',requires:null},
+    {id:'heart',name:'СЕРДЦЕ',icon:'❤️',css:'cursor-heart',requires:'pissing'},
+    {id:'star',name:'ЗВЕЗДА',icon:'⭐',css:'cursor-star',requires:'basic'},
+    {id:'fire',name:'ОГОНЬ',icon:'🔥',css:'cursor-fire',requires:'basic'},
+    {id:'diamond',name:'БРИЛЛИАНТ',icon:'💎',css:'cursor-diamond',requires:'lux'},
+    {id:'sword',name:'МЕЧ',icon:'⚔️',css:'cursor-sword',requires:'lux'},
+    {id:'skull',name:'ЧЕРЕП',icon:'💀',css:'cursor-skull',requires:'pro'},
+    {id:'crown',name:'КОРОНА',icon:'👑',css:'cursor-crown',requires:'pro'},
+    {id:'lightning',name:'МОЛНИЯ',icon:'⚡',css:'cursor-lightning',requires:'rapport'}
+];
+
+function renderCursors(){
+    const grid=document.getElementById('cursors-grid');if(!grid||!currentUser)return;
+    const active=currentUser.cursorId||'default';
+    const levels={pissing:0.5,basic:1,lux:2,pro:3,rapport:3};
+    const userLevel=levels[getUserSubLevel()]||0;
+    grid.innerHTML='';
+    CURSORS.forEach(c=>{
+        const reqLevel=c.requires?(levels[c.requires]||0):0;
+        const canUse=userLevel>=reqLevel;
+        const div=document.createElement('div');
+        div.className='cursor-option'+(active===c.id?' selected':'')+(!canUse?' locked':'');
+        div.innerHTML=`<div class="cursor-icon">${c.icon}</div><div class="cursor-name">${c.name}</div>${c.requires?`<div class="cursor-requires">${c.requires.toUpperCase()}+</div>`:'<div class="cursor-requires" style="color:#4CAF50;">FREE</div>'}`;
+        div.onclick=()=>{
+            if(!canUse){alert('🔒 Нужна подписка '+c.requires.toUpperCase()+'!');return;}
+            currentUser.cursorId=c.id;saveCurrentUserToFirebase();applyCursor();renderCursors();playSound('click');
+        };
+        grid.appendChild(div);
+    });
+}
+
+function applyCursor(){
+    if(!currentUser)return;
+    CURSORS.forEach(c=>document.body.classList.remove(c.css));
+    const cursor=CURSORS.find(c=>c.id===(currentUser.cursorId||'default'));
+    if(cursor&&cursor.css)document.body.classList.add(cursor.css);
+}
+
+// ============ БИРЖА ============
+let allMarketListings={};
+function setupMarketListener(){if(firebaseReady){fbListen('market',(data)=>{allMarketListings=data||{};if(typeof renderMarket==='function')renderMarket();});}else{setTimeout(setupMarketListener,500);}}
+setupMarketListener();
+
+async function createMarketListing(){
+    if(!currentUser){alert('Войди!');return;}
+    const type=document.getElementById('market-item-type').value;
+    const price=parseInt(document.getElementById('market-price').value);
+    if(!type){alert('Выбери что продаёшь!');return;}
+    if(!price||price<1){alert('Укажи цену!');return;}
+    const names={'frame_gold':'🖼️ Золотая рамка','frame_rainbow':'🖼️ Радужная рамка','frame_fire':'🖼️ Огненная рамка','sticker_pack':'🎨 Набор стикеров','color_gold':'🌈 Золотой ник','color_rainbow':'🌈 Радужный ник','promo_basic':'🎬 Промокод BASIC','promo_lux':'💎 Промокод LUX'};
+    const listing={sellerEmail:currentUser.email,sellerName:currentUser.name,itemType:type,itemName:names[type]||type,price:price,timestamp:Date.now(),date:new Date().toLocaleString('ru-RU')};
+    const ref=window.fbPush(window.fbRef(window.fbDb,'market'));
+    await window.fbSet(ref,listing);
+    document.getElementById('market-item-type').value='';document.getElementById('market-price').value='';
+    alert('✅ Выставлено на продажу!');
+}
+
+async function buyMarketItem(id){
+    if(!currentUser){alert('Войди!');return;}
+    const listing=allMarketListings[id];if(!listing)return;
+    if(listing.sellerEmail===currentUser.email){alert('Нельзя купить своё!');return;}
+    const bal=currentUser.wallet?.RUB||0;
+    if(bal<listing.price){alert('Недостаточно средств!');return;}
+    if(!confirm(`Купить "${listing.itemName}" за ${listing.price} ₽?`))return;
+    currentUser.wallet.RUB=bal-listing.price;await saveCurrentUserToFirebase();
+    const sellerKey=emailToKey(listing.sellerEmail);
+    const seller=allUsers[sellerKey];
+    if(seller){const sellerBal=seller.wallet?.RUB||0;await fbUpdatePath(`users/${sellerKey}/wallet`,{...seller.wallet,RUB:sellerBal+listing.price});}
+    await fbRemovePath(`market/${id}`);playSound('gift');
+    alert(`✅ Куплено! "${listing.itemName}" теперь твоё!`);
+}
+
+async function cancelMarketListing(id){if(!confirm('Снять с продажи?'))return;await fbRemovePath(`market/${id}`);}
+
+function renderMarket(){
+    const list=document.getElementById('market-listings');if(!list)return;
+    const items=Object.entries(allMarketListings).sort((a,b)=>(b[1].timestamp||0)-(a[1].timestamp||0));
+    if(!items.length){list.innerHTML='<p style="color:#555;text-align:center;padding:30px;">Нет объявлений</p>';return;}
+    list.innerHTML='';
+    items.forEach(([id,item])=>{
+        const isMine=currentUser&&item.sellerEmail===currentUser.email;
+        const div=document.createElement('div');div.className='market-item';
+        div.innerHTML=`<div class="market-item-icon">${item.itemName.split(' ')[0]}</div><div class="market-item-info"><div class="market-item-name">${item.itemName}</div><div class="market-item-seller">Продавец: ${item.sellerName} • ${item.date}</div></div><div class="market-item-price">${item.price} ₽</div>${isMine?`<button class="market-buy-btn" style="background:var(--red);" onclick="cancelMarketListing('${id}')">❌ СНЯТЬ</button>`:`<button class="market-buy-btn" onclick="buyMarketItem('${id}')">💰 КУПИТЬ</button>`}`;
+        list.appendChild(div);
+    });
+}
+
+// ============ ИВЕНТЫ ============
+let allEvents={};
+function setupEventsListener(){if(firebaseReady){fbListen('events',(data)=>{allEvents=data||{};renderActiveEvent();renderEventsList();});}else{setTimeout(setupEventsListener,500);}}
+setupEventsListener();
+
+async function createEvent(){
+    if(!currentUser||!currentUser.isAdmin){alert('Только админ!');return;}
+    const name=document.getElementById('event-name').value.trim();
+    const desc=document.getElementById('event-desc').value.trim();
+    const duration=parseInt(document.getElementById('event-duration').value);
+    if(!name){alert('Введи название!');return;}
+    if(!duration||duration<1){alert('Укажи длительность!');return;}
+    const event={name,description:desc||'',startTime:Date.now(),endTime:Date.now()+duration*60*1000,createdBy:currentUser.name};
+    const ref=window.fbPush(window.fbRef(window.fbDb,'events'));
+    await window.fbSet(ref,event);
+    document.getElementById('event-name').value='';document.getElementById('event-desc').value='';
+    alert('✅ Ивент запущен!');
+}
+
+async function deleteEvent(id){if(!confirm('Удалить ивент?'))return;await fbRemovePath(`events/${id}`);}
+
+function renderActiveEvent(){
+    const container=document.getElementById('birthday-banner-container');
+    if(!container)return;
+    const now=Date.now();
+    const active=Object.entries(allEvents).find(([id,e])=>e.endTime>now);
+    if(!active){return;}
+    const[id,event]=active;
+    const remain=event.endTime-now;
+    const mins=Math.floor(remain/60000);
+    const secs=Math.floor((remain%60000)/1000);
+    // Не перезаписываем ДР баннер, добавляем после
+    const existingEvent=container.querySelector('.event-banner');
+    if(existingEvent)existingEvent.remove();
+    const div=document.createElement('div');div.className='event-banner';
+    div.innerHTML=`<div class="event-title">🎪 ${event.name}</div>${event.description?`<div class="event-desc">${event.description}</div>`:''}<div class="event-timer">${String(mins).padStart(2,'0')}:${String(secs).padStart(2,'0')}</div>`;
+    container.appendChild(div);
+}
+setInterval(renderActiveEvent,1000);
+
+function renderEventsList(){
+    const list=document.getElementById('events-list');if(!list)return;
+    const now=Date.now();
+    const items=Object.entries(allEvents).sort((a,b)=>(b[1].startTime||0)-(a[1].startTime||0));
+    if(!items.length){list.innerHTML='<p style="color:#555;">Нет ивентов</p>';return;}
+    list.innerHTML='';
+    items.forEach(([id,e])=>{
+        const isActive=e.endTime>now;
+        const div=document.createElement('div');div.className='market-item';div.style.borderLeft=isActive?'4px solid #4CAF50':'4px solid #555';
+        div.innerHTML=`<div style="font-size:2rem;">${isActive?'🟢':'⚫'}</div><div class="market-item-info"><div class="market-item-name">${e.name}</div><div class="market-item-seller">${isActive?'Активен':'Завершён'} • ${e.createdBy}</div></div><button class="action-btn red" onclick="deleteEvent('${id}')">🗑</button>`;
+        list.appendChild(div);
+    });
+}
+
+// ============ ДАШБОРД ============
+function renderDashboard(){
+    const grid=document.getElementById('dashboard-grid');if(!grid)return;
+    const onlineCount=typeof getOnlineUsersCount==='function'?getOnlineUsersCount():0;
+    const totalUsers=Object.keys(allUsers).length;
+    const totalComments=allComments.length;
+    const totalMessages=Object.values(allMessages).reduce((sum,chat)=>sum+Object.keys(chat).length,0);
+    const totalGroups=allGroups?Object.keys(allGroups).length:0;
+    const activeEvents=Object.values(allEvents).filter(e=>e.endTime>Date.now()).length;
+    const marketItems=Object.keys(allMarketListings).length;
+    const totalTickets=allTickets.length;
+    const openTickets=allTickets.filter(t=>t.status==='new').length;
+    grid.innerHTML=`
+        <div class="dashboard-card"><div class="dashboard-card-title"><span class="live-dot"></span>ОНЛАЙН СЕЙЧАС</div><div class="dashboard-card-value" style="color:var(--green);">${onlineCount}</div></div>
+        <div class="dashboard-card"><div class="dashboard-card-title">👥 ВСЕГО ЮЗЕРОВ</div><div class="dashboard-card-value">${totalUsers}</div></div>
+        <div class="dashboard-card"><div class="dashboard-card-title">💬 СООБЩЕНИЙ</div><div class="dashboard-card-value" style="color:var(--blue);">${totalMessages}</div></div>
+        <div class="dashboard-card"><div class="dashboard-card-title">📝 КОММЕНТАРИЕВ</div><div class="dashboard-card-value">${totalComments}</div></div>
+        <div class="dashboard-card"><div class="dashboard-card-title">👥 ГРУПП</div><div class="dashboard-card-value" style="color:var(--gold);">${totalGroups}</div></div>
+        <div class="dashboard-card"><div class="dashboard-card-title">🎪 АКТИВНЫХ ИВЕНТОВ</div><div class="dashboard-card-value" style="color:#FF6347;">${activeEvents}</div></div>
+        <div class="dashboard-card"><div class="dashboard-card-title">💱 НА БИРЖЕ</div><div class="dashboard-card-value" style="color:var(--gold);">${marketItems}</div></div>
+        <div class="dashboard-card"><div class="dashboard-card-title">📨 ОТКРЫТЫХ ТИКЕТОВ</div><div class="dashboard-card-value" style="color:#FF9800;">${openTickets}</div><div class="dashboard-card-sub">из ${totalTickets} всего</div></div>
+    `;
+}
+setInterval(()=>{if(document.getElementById('admin-dashboard')&&document.getElementById('admin-dashboard').classList.contains('active'))renderDashboard();},5000);
+
+// ============ РАССЫЛКА PUSH ============
+async function sendBroadcast(){
+    if(!currentUser||!currentUser.isAdmin){alert('Только админ!');return;}
+    const title=document.getElementById('broadcast-title').value.trim();
+    const text=document.getElementById('broadcast-text').value.trim();
+    if(!title){alert('Введи заголовок!');return;}
+    if(!text){alert('Введи текст!');return;}
+    if(!confirm(`Отправить "${title}" ВСЕМ пользователям?`))return;
+    const broadcast={title,text,from:currentUser.name,timestamp:Date.now()};
+    const ref=window.fbPush(window.fbRef(window.fbDb,'broadcasts'));
+    await window.fbSet(ref,broadcast);
+    document.getElementById('broadcast-title').value='';document.getElementById('broadcast-text').value='';
+    alert('✅ Push отправлен всем!');
+}
+
+// Слушаем рассылки
+let lastBroadcastTime=Date.now();
+function setupBroadcastListener(){if(firebaseReady){fbListen('broadcasts',(data)=>{if(!data||!currentUser)return;Object.values(data).forEach(b=>{if(b.timestamp>lastBroadcastTime){sendPushNotification(b.title,b.text);showFriendNotification(`📢 ${b.title}: ${b.text}`);}});lastBroadcastTime=Date.now();});}else{setTimeout(setupBroadcastListener,500);}}
+setupBroadcastListener();
+
+// ============ ПАСХАЛКА — КОНАМИ КОД ============
+let konamiSequence=[];
+const KONAMI_CODE=['ArrowUp','ArrowUp','ArrowDown','ArrowDown','ArrowLeft','ArrowRight','ArrowLeft','ArrowRight','b','a'];
+
+document.addEventListener('keydown',(e)=>{
+    konamiSequence.push(e.key);
+    if(konamiSequence.length>10)konamiSequence.shift();
+    if(JSON.stringify(konamiSequence)===JSON.stringify(KONAMI_CODE)){
+        konamiSequence=[];
+        activateEasterEgg();
+    }
+});
+
+function activateEasterEgg(){
+    playSound('gift');
+
+    // Дождь монет
+    for(let i=0;i<50;i++){
+        setTimeout(()=>{
+            const coin=document.createElement('div');
+            coin.className='easter-coin';
+            coin.textContent=['💰','⭐','💎','🔥','👑','🎉','✨'][Math.floor(Math.random()*7)];
+            coin.style.left=Math.random()*100+'%';
+            coin.style.animationDuration=(2+Math.random()*3)+'s';
+            coin.style.animationDelay=Math.random()+'s';
+            document.body.appendChild(coin);
+            setTimeout(()=>coin.remove(),5000);
+        },i*50);
+    }
+
+    // Секретное сообщение
+    setTimeout(()=>{
+        const matrix=document.createElement('div');
+        matrix.className='matrix-bg';
+        matrix.innerHTML=`
+            <div style="font-size:5rem;margin-bottom:20px;">🎮</div>
+            <div class="matrix-text">СЕКРЕТНЫЙ РЕЖИМ АКТИВИРОВАН!</div>
+            <div style="margin-top:20px;color:#0F0;opacity:0.7;">Ты нашёл пасхалку! Конами-код: ↑↑↓↓←→←→BA</div>
+            <div style="margin-top:10px;color:var(--gold);font-size:1.2rem;">+100 ₽ на счёт! 🎁</div>
+            <button onclick="this.parentElement.remove();" style="margin-top:20px;padding:10px 30px;background:#0F0;color:#000;border:none;border-radius:8px;cursor:pointer;font-family:'Bebas Neue';letter-spacing:3px;font-size:1.1rem;">КРУТО!</button>
+        `;
+        matrix.onclick=(e)=>{if(e.target===matrix)matrix.remove();};
+        document.body.appendChild(matrix);
+
+        // Даём 100 рублей
+        if(currentUser){
+            currentUser.wallet.RUB=(currentUser.wallet.RUB||0)+100;
+            saveCurrentUserToFirebase();
+            if(typeof updateWalletDisplay==='function')updateWalletDisplay();
+        }
+    },2000);
+}
+
+// ============ ИНТЕГРАЦИЯ ============
+if(typeof showPage==='function'){
+    const origSP=showPage;
+    showPage=function(pageId){
+        origSP(pageId);
+        if(pageId==='market')renderMarket();
+        if(pageId==='profile'){renderCursors();applyCursor();}
+    };
+}
+
+if(typeof switchAdminTab==='function'){
+    const origSAT=switchAdminTab;
+    switchAdminTab=function(tab){
+        const tabs=['users','payments','comments','tickets','promos','episodes','moderation','analytics','serials','events','dashboard','broadcast'];
+        document.querySelectorAll('.admin-tab').forEach((t,i)=>t.classList.toggle('active',tabs[i]===tab));
+        tabs.forEach(t=>{const el=document.getElementById('admin-'+t);if(el)el.classList.toggle('active',t===tab);});
+        if(tab==='moderation'&&typeof renderModerationList==='function')renderModerationList();
+        if(tab==='analytics'&&typeof renderAnalytics==='function')renderAnalytics();
+        if(tab==='serials'&&typeof renderSerialsAdmin==='function')renderSerialsAdmin();
+        if(tab==='events')renderEventsList();
+        if(tab==='dashboard')renderDashboard();
+    };
+}
+
+if(typeof loginSuccess==='function'){
+    const origLS=loginSuccess;
+    loginSuccess=function(){origLS();applyCursor();renderCursors();};
+}
+// ============================================
+//  УПРАВЛЕНИЕ РАППОРТАМИ + РЕДАКТОР ПАСХАЛОК
+// ============================================
+
+let allEasterEggs = {};
+
+// ============ РАППОРТЫ ============
+function renderRapportsList(){
+    const list = document.getElementById('rapports-list');
+    if(!list) return;
+
+    const rapports = Object.entries(allUsers).filter(([key, u]) => u.subscription === 'rapport' && !u.isAdmin);
+
+    if(!rapports.length){
+        list.innerHTML = '<p style="color:#555;text-align:center;padding:30px;">Нет пользователей с подпиской РАППОРТ</p>';
+        return;
+    }
+
+    list.innerHTML = '';
+    rapports.forEach(([key, u]) => {
+        const av = u.avatarImg ? `<img src="${u.avatarImg}">` : (u.avatar || '👤');
+        const perms = u.permissions || {};
+        const limits = u.rapportLimits || {};
+        const online = typeof isUserOnline === 'function' && isUserOnline(u.email);
+
+        const div = document.createElement('div');
+        div.className = 'rapport-card';
+        div.innerHTML = `
+            <div class="rapport-card-header">
+                <div class="rapport-card-avatar">${av}</div>
+                <div class="rapport-card-name">
+                    <h4>${u.name} ${online ? '<span class="online-dot"></span>' : ''}</h4>
+                    <p>${u.email}</p>
+                </div>
+                <button class="action-btn red" onclick="removeRapport('${key}')">❌ СНЯТЬ РАППОРТ</button>
+            </div>
+
+            <div class="rapport-restrictions">
+                <h5 style="color:#00BCD4;font-family:'Bebas Neue';letter-spacing:2px;margin-bottom:5px;">🔒 ПРАВА</h5>
+
+                <div class="rapport-restriction">
+                    <label>🚫 Может банить пользователей</label>
+                    <div class="perm-toggle ${perms.ban !== false ? 'active' : ''}" id="rp-ban-${key}" onclick="togglePerm(this)"></div>
+                </div>
+
+                <div class="rapport-restriction">
+                    <label>💬 Может удалять комментарии</label>
+                    <div class="perm-toggle ${perms['delete-comments'] !== false ? 'active' : ''}" id="rp-delcom-${key}" onclick="togglePerm(this)"></div>
+                </div>
+
+                <div class="rapport-restriction">
+                    <label>📸 Может модерировать контент</label>
+                    <div class="perm-toggle ${perms.moderate !== false ? 'active' : ''}" id="rp-mod-${key}" onclick="togglePerm(this)"></div>
+                </div>
+
+                <div class="rapport-restriction">
+                    <label>⚠️ Может давать предупреждения</label>
+                    <div class="perm-toggle ${perms.warn !== false ? 'active' : ''}" id="rp-warn-${key}" onclick="togglePerm(this)"></div>
+                </div>
+
+                <div class="rapport-restriction">
+                    <label>📨 Может закрывать обращения</label>
+                    <div class="perm-toggle ${perms['delete-tickets'] !== false ? 'active' : ''}" id="rp-tickets-${key}" onclick="togglePerm(this)"></div>
+                </div>
+
+                <div class="rapport-restriction">
+                    <label>🎁 Может удалять промокоды</label>
+                    <div class="perm-toggle ${perms['delete-promos'] !== false ? 'active' : ''}" id="rp-promos-${key}" onclick="togglePerm(this)"></div>
+                </div>
+
+                <h5 style="color:#FF9800;font-family:'Bebas Neue';letter-spacing:2px;margin:10px 0 5px;">⚠️ ЛИМИТЫ (в день)</h5>
+
+                <div class="rapport-restriction">
+                    <label>Макс. банов в день</label>
+                    <input type="number" class="rapport-limit-input" id="rp-limit-bans-${key}" value="${limits.maxBansPerDay || 5}" min="0" max="100">
+                </div>
+
+                <div class="rapport-restriction">
+                    <label>Макс. удалённых комментов в день</label>
+                    <input type="number" class="rapport-limit-input" id="rp-limit-delcom-${key}" value="${limits.maxDeleteCommentsPerDay || 20}" min="0" max="500">
+                </div>
+
+                <div class="rapport-restriction">
+                    <label>Макс. предупреждений в день</label>
+                    <input type="number" class="rapport-limit-input" id="rp-limit-warns-${key}" value="${limits.maxWarnsPerDay || 10}" min="0" max="50">
+                </div>
+            </div>
+
+            <button class="rapport-save-btn" onclick="saveRapportSettings('${key}')">💾 СОХРАНИТЬ НАСТРОЙКИ</button>
+        `;
+        list.appendChild(div);
+    });
+}
+
+async function saveRapportSettings(key){
+    const perms = {
+        ban: document.getElementById(`rp-ban-${key}`).classList.contains('active'),
+        'delete-comments': document.getElementById(`rp-delcom-${key}`).classList.contains('active'),
+        moderate: document.getElementById(`rp-mod-${key}`).classList.contains('active'),
+        warn: document.getElementById(`rp-warn-${key}`).classList.contains('active'),
+        'delete-tickets': document.getElementById(`rp-tickets-${key}`).classList.contains('active'),
+        'delete-promos': document.getElementById(`rp-promos-${key}`).classList.contains('active')
+    };
+
+    const limits = {
+        maxBansPerDay: parseInt(document.getElementById(`rp-limit-bans-${key}`).value) || 5,
+        maxDeleteCommentsPerDay: parseInt(document.getElementById(`rp-limit-delcom-${key}`).value) || 20,
+        maxWarnsPerDay: parseInt(document.getElementById(`rp-limit-warns-${key}`).value) || 10
+    };
+
+    await fbUpdatePath(`users/${key}`, { permissions: perms, rapportLimits: limits });
+    playSound('click');
+    alert('✅ Настройки Раппорта сохранены!');
+}
+
+async function removeRapport(key){
+    if(!confirm('Снять подписку РАППОРТ с этого пользователя?')) return;
+    await fbUpdatePath(`users/${key}`, { subscription: false, permissions: null, rapportLimits: null });
+    alert('✅ РАППОРТ снят!');
+    renderRapportsList();
+}
+
+// ============ ПАСХАЛКИ ============
+function setupEasterEggsListener(){
+    if(firebaseReady){
+        fbListen('easterEggs', (data) => {
+            allEasterEggs = data || {};
+            if(typeof renderEasterEggsList === 'function') renderEasterEggsList();
+            if(typeof checkEasterEggs === 'function') checkEasterEggs();
+        });
+    } else {
+        setTimeout(setupEasterEggsListener, 500);
+    }
+}
+setupEasterEggsListener();
+
+// Подсказка для типа триггера
+document.addEventListener('change', (e) => {
+    if(e.target.id !== 'easter-trigger-type') return;
+    const help = document.getElementById('trigger-help');
+    const val = e.target.value;
+    if(!val){ help.style.display = 'none'; return; }
+    help.style.display = 'block';
+
+    const hints = {
+        'chat_word': '💬 Введи секретное слово. Когда юзер напишет его в чате — сработает.\nПример: <b>СЕКРЕТ2024</b>',
+        'click_logo': '🖱️ Введи количество кликов по логотипу THE DED.\nПример: <b>10</b> (нужно кликнуть 10 раз подряд)',
+        'url_secret': '🔗 Введи секретный путь. Юзер должен добавить его в адресную строку.\nПример: <b>secret</b> (юзер открывает сайт/secret)',
+        'konami': '⌨️ Конами-код: ↑↑↓↓←→←→BA.\nОставь поле пустым — код стандартный.',
+        'time': '🕐 Введи время в формате ЧЧ:ММ. Сработает в это время.\nПример: <b>00:00</b> (в полночь)',
+        'comment_word': '📝 Введи слово. Если юзер напишет его в комментарии — сработает.\nПример: <b>ПАСХАЛКА</b>'
+    };
+
+    help.innerHTML = hints[val] || '';
+});
+
+async function createEasterEgg(){
+    if(!currentUser || !currentUser.isAdmin){ alert('Только админ!'); return; }
+
+    const name = document.getElementById('easter-name').value.trim();
+    const triggerType = document.getElementById('easter-trigger-type').value;
+    const triggerValue = document.getElementById('easter-trigger-value').value.trim();
+    const rewardType = document.getElementById('easter-reward-type').value;
+    const rewardValue = document.getElementById('easter-reward-value').value.trim();
+    const maxUses = parseInt(document.getElementById('easter-max-uses').value) || 0;
+    const active = document.getElementById('easter-active').checked;
+
+    if(!name){ alert('Введи название!'); return; }
+    if(!triggerType){ alert('Выбери тип триггера!'); return; }
+    if(!rewardType){ alert('Выбери награду!'); return; }
+    if(!rewardValue){ alert('Введи значение награды!'); return; }
+
+    const egg = {
+        name: name,
+        triggerType: triggerType,
+        triggerValue: triggerValue.toUpperCase(),
+        rewardType: rewardType,
+        rewardValue: rewardValue,
+        maxUses: maxUses,
+        uses: 0,
+        usedBy: [],
+        active: active,
+        createdAt: Date.now(),
+        createdBy: currentUser.name
+    };
+
+    const ref = window.fbPush(window.fbRef(window.fbDb, 'easterEggs'));
+    await window.fbSet(ref, egg);
+
+    // Очищаем форму
+    document.getElementById('easter-name').value = '';
+    document.getElementById('easter-trigger-type').value = '';
+    document.getElementById('easter-trigger-value').value = '';
+    document.getElementById('easter-reward-type').value = '';
+    document.getElementById('easter-reward-value').value = '';
+    document.getElementById('easter-max-uses').value = '0';
+    document.getElementById('trigger-help').style.display = 'none';
+
+    playSound('gift');
+    alert(`✅ Пасхалка "${name}" создана!`);
+}
+
+async function toggleEasterEgg(id){
+    const egg = allEasterEggs[id];
+    if(!egg) return;
+    await fbUpdatePath(`easterEggs/${id}`, { active: !egg.active });
+}
+
+async function deleteEasterEgg(id){
+    if(!confirm('Удалить пасхалку?')) return;
+    await fbRemovePath(`easterEggs/${id}`);
+    alert('✅ Удалена!');
+}
+
+function renderEasterEggsList(){
+    const list = document.getElementById('easter-eggs-list');
+    if(!list) return;
+
+    const eggs = Object.entries(allEasterEggs).sort((a, b) => (b[1].createdAt || 0) - (a[1].createdAt || 0));
+
+    if(!eggs.length){
+        list.innerHTML = '<p style="color:#555;text-align:center;padding:30px;">Нет пасхалок. Создай первую! 🥚</p>';
+        return;
+    }
+
+    const triggerNames = {
+        'chat_word': '💬 Слово в чате',
+        'click_logo': '🖱️ Клик по логотипу',
+        'url_secret': '🔗 Секретная ссылка',
+        'konami': '⌨️ Конами-код',
+        'time': '🕐 По времени',
+        'comment_word': '📝 Слово в комментарии'
+    };
+
+    const rewardNames = {
+        'money': '💰 Деньги',
+        'subscription': '👑 Подписка',
+        'message': '💬 Сообщение',
+        'confetti': '🎉 Конфетти',
+        'theme': '🎨 Тема'
+    };
+
+    list.innerHTML = '';
+    eggs.forEach(([id, egg]) => {
+        const div = document.createElement('div');
+        div.className = 'easter-card ' + (egg.active ? 'active' : 'inactive');
+        div.innerHTML = `
+            <div class="easter-card-header">
+                <div class="easter-card-name">🥚 ${egg.name}</div>
+                <div style="display:flex;gap:5px;">
+                    <button class="action-btn ${egg.active ? 'orange' : 'green'}" onclick="toggleEasterEgg('${id}')">${egg.active ? '⏸ Выкл' : '▶ Вкл'}</button>
+                    <button class="action-btn red" onclick="deleteEasterEgg('${id}')">🗑</button>
+                </div>
+            </div>
+            <div class="easter-card-trigger">
+                <strong>Триггер:</strong> ${triggerNames[egg.triggerType] || egg.triggerType}
+                ${egg.triggerValue ? ` → <span style="color:var(--gold);">${egg.triggerValue}</span>` : ''}
+            </div>
+            <div class="easter-card-reward">
+                <strong>Награда:</strong> ${rewardNames[egg.rewardType] || egg.rewardType} → ${egg.rewardValue}
+            </div>
+            <div style="color:#555;font-size:0.8rem;margin-top:8px;">
+                Использований: ${egg.uses}${egg.maxUses > 0 ? ` / ${egg.maxUses}` : ' (∞)'}
+                • Создал: ${egg.createdBy}
+                • ${egg.active ? '🟢 Активна' : '⚫ Выключена'}
+            </div>
+        `;
+        list.appendChild(div);
+    });
+}
+
+// ============ ПРОВЕРКА ПАСХАЛОК ============
+function checkEasterEggs(){
+    if(!currentUser) return;
+    // Проверяем пасхалки по времени
+    const now = new Date();
+    const timeStr = String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
+
+    Object.entries(allEasterEggs).forEach(([id, egg]) => {
+        if(!egg.active) return;
+        if(egg.maxUses > 0 && egg.uses >= egg.maxUses) return;
+        if(egg.usedBy && egg.usedBy.includes(currentUser.email)) return;
+
+        if(egg.triggerType === 'time' && egg.triggerValue === timeStr){
+            activateEasterEggReward(id, egg);
+        }
+    });
+}
+
+// Проверяем время каждую минуту
+setInterval(checkEasterEggs, 60000);
+
+// Проверяем слова в чате
+if(typeof sendMessage === 'function'){
+    const origSendMsg = sendMessage;
+    sendMessage = async function(toEmail){
+        const input = document.getElementById('chat-input-text');
+        const text = input ? input.value.trim().toUpperCase() : '';
+
+        // Проверяем пасхалки
+        Object.entries(allEasterEggs).forEach(([id, egg]) => {
+            if(!egg.active) return;
+            if(egg.triggerType !== 'chat_word') return;
+            if(egg.maxUses > 0 && egg.uses >= egg.maxUses) return;
+            if(egg.usedBy && egg.usedBy.includes(currentUser.email)) return;
+            if(text.includes(egg.triggerValue)){
+                activateEasterEggReward(id, egg);
+            }
+        });
+
+        await origSendMsg(toEmail);
+    };
+}
+
+// Проверяем слова в комментариях
+if(typeof postComment === 'function'){
+    const origPostComment = postComment;
+    postComment = async function(){
+        const input = document.getElementById('comment-text');
+        const text = input ? input.value.trim().toUpperCase() : '';
+
+        Object.entries(allEasterEggs).forEach(([id, egg]) => {
+            if(!egg.active) return;
+            if(egg.triggerType !== 'comment_word') return;
+            if(egg.maxUses > 0 && egg.uses >= egg.maxUses) return;
+            if(egg.usedBy && egg.usedBy.includes(currentUser.email)) return;
+            if(text.includes(egg.triggerValue)){
+                activateEasterEggReward(id, egg);
+            }
+        });
+
+        await origPostComment();
+    };
+}
+
+// Клик по логотипу
+let logoClickCount = 0;
+let logoClickTimer = null;
+
+document.addEventListener('click', (e) => {
+    if(!e.target.closest('.logo')) return;
+    logoClickCount++;
+    clearTimeout(logoClickTimer);
+    logoClickTimer = setTimeout(() => { logoClickCount = 0; }, 2000);
+
+    Object.entries(allEasterEggs).forEach(([id, egg]) => {
+        if(!egg.active) return;
+        if(egg.triggerType !== 'click_logo') return;
+        if(egg.maxUses > 0 && egg.uses >= egg.maxUses) return;
+        if(egg.usedBy && egg.usedBy.includes(currentUser.email)) return;
+        if(logoClickCount >= parseInt(egg.triggerValue)){
+            logoClickCount = 0;
+            activateEasterEggReward(id, egg);
+        }
+    });
+});
+
+// Конами-код
+let konamiSeq = [];
+const KONAMI = ['ArrowUp','ArrowUp','ArrowDown','ArrowDown','ArrowLeft','ArrowRight','ArrowLeft','ArrowRight','b','a'];
+
+document.addEventListener('keydown', (e) => {
+    konamiSeq.push(e.key);
+    if(konamiSeq.length > 10) konamiSeq.shift();
+    if(JSON.stringify(konamiSeq) === JSON.stringify(KONAMI)){
+        konamiSeq = [];
+        Object.entries(allEasterEggs).forEach(([id, egg]) => {
+            if(!egg.active) return;
+            if(egg.triggerType !== 'konami') return;
+            if(egg.maxUses > 0 && egg.uses >= egg.maxUses) return;
+            if(egg.usedBy && egg.usedBy.includes(currentUser.email)) return;
+            activateEasterEggReward(id, egg);
+        });
+    }
+});
+
+// Активация пасхалки
+async function activateEasterEggReward(id, egg){
+    if(!currentUser) return;
+    if(egg.usedBy && egg.usedBy.includes(currentUser.email)) return;
+
+    // Обновляем использования
+    const newUsedBy = [...(egg.usedBy || []), currentUser.email];
+    await fbUpdatePath(`easterEggs/${id}`, { uses: egg.uses + 1, usedBy: newUsedBy });
+
+    // Даём награду
+    if(egg.rewardType === 'money'){
+        const amount = parseInt(egg.rewardValue) || 0;
+        if(amount > 0){
+            currentUser.wallet.RUB = (currentUser.wallet.RUB || 0) + amount;
+            await saveCurrentUserToFirebase();
+            if(typeof updateWalletDisplay === 'function') updateWalletDisplay();
+        }
+    } else if(egg.rewardType === 'subscription'){
+        currentUser.subscription = egg.rewardValue;
+        await saveCurrentUserToFirebase();
+        if(typeof updateSubDisplay === 'function') updateSubDisplay();
+    }
+
+    // Визуал
+    if(egg.rewardType === 'confetti' || egg.rewardType === 'money'){
+        if(typeof startConfetti === 'function') startConfetti();
+    }
+
+    playSound('gift');
+
+    // Показываем уведомление
+    const notif = document.createElement('div');
+    notif.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:linear-gradient(135deg,var(--gold),#FFA500);color:#000;padding:30px 40px;border-radius:20px;z-index:999999;text-align:center;box-shadow:0 20px 60px rgba(255,215,0,0.5);animation:modalPop 0.5s ease;max-width:90%;';
+    notif.innerHTML = `
+        <div style="font-size:4rem;margin-bottom:10px;">🥚</div>
+        <div style="font-family:'Bebas Neue';font-size:2rem;letter-spacing:3px;">ПАСХАЛКА!</div>
+        <div style="font-size:1.1rem;margin:10px 0;">${egg.name}</div>
+        <div style="font-size:0.95rem;opacity:0.9;">Награда: ${egg.rewardValue}</div>
+        <button onclick="this.parentElement.remove();" style="margin-top:15px;padding:10px 30px;background:white;color:#000;border:none;border-radius:8px;cursor:pointer;font-family:'Bebas Neue';letter-spacing:3px;">КРУТО!</button>
+    `;
+    document.body.appendChild(notif);
+    setTimeout(() => { if(notif.parentElement) notif.remove(); }, 15000);
+}
+
+// ============ ИНТЕГРАЦИЯ ============
+if(typeof switchAdminTab === 'function'){
+    const origSAT = switchAdminTab;
+    switchAdminTab = function(tab){
+        origSAT(tab);
+        if(tab === 'rapports') renderRapportsList();
+        if(tab === 'easter') renderEasterEggsList();
+    };
+}
+// ============ ФИКС ВКЛАДОК АДМИНКИ ============
+// Переопределяем switchAdminTab чтобы включить ВСЕ вкладки
+if(typeof switchAdminTab === 'function'){
+    switchAdminTab = function(tab){
+        const allTabs = ['users','payments','comments','tickets','promos','episodes','moderation','analytics','serials','events','dashboard','broadcast','rapports','easter'];
+        document.querySelectorAll('.admin-tab').forEach((t,i) => {
+            t.classList.toggle('active', allTabs[i] === tab);
+        });
+        allTabs.forEach(t => {
+            const el = document.getElementById('admin-' + t);
+            if(el) el.classList.toggle('active', t === tab);
+        });
+        // Рендерим контент при открытии вкладки
+        if(tab === 'moderation' && typeof renderModerationList === 'function') renderModerationList();
+        if(tab === 'analytics' && typeof renderAnalytics === 'function') renderAnalytics();
+        if(tab === 'serials' && typeof renderSerialsAdmin === 'function') renderSerialsAdmin();
+        if(tab === 'events' && typeof renderEventsList === 'function') renderEventsList();
+        if(tab === 'dashboard' && typeof renderDashboard === 'function') renderDashboard();
+        if(tab === 'rapports' && typeof renderRapportsList === 'function') renderRapportsList();
+        if(tab === 'easter' && typeof renderEasterEggsList === 'function') renderEasterEggsList();
+        if(tab === 'market' && typeof renderMarket === 'function') renderMarket();
+    };
+}
+
+// ============ ФИКС БИРЖИ — МОДЕРАЦИЯ ============
+
+// Переопределяем createMarketListing с модерацией
+if(typeof createMarketListing === 'function'){
+    createMarketListing = async function(){
+        if(!currentUser){alert('Войди!');return;}
+        if(currentUser.banned){alert('Заблокирован!');return;}
+
+        const type = document.getElementById('market-item-type').value;
+        const price = parseInt(document.getElementById('market-price').value);
+
+        if(!type){alert('Выбери что продаёшь!');return;}
+        if(!price || price < 1){alert('Укажи цену!');return;}
+
+        // Минимальные цены для предметов
+        const minPrices = {
+            'frame_gold': 20,
+            'frame_rainbow': 30,
+            'frame_fire': 40,
+            'sticker_pack': 10,
+            'color_gold': 25,
+            'color_rainbow': 35,
+            'promo_basic': 8,
+            'promo_lux': 20
+        };
+
+        const minPrice = minPrices[type] || 5;
+        if(price < minPrice){
+            alert(`❌ Минимальная цена для этого предмета: ${minPrice} ₽`);
+            return;
+        }
+
+        const names = {
+            'frame_gold': '🖼️ Золотая рамка',
+            'frame_rainbow': '🖼️ Радужная рамка',
+            'frame_fire': '🖼️ Огненная рамка',
+            'sticker_pack': '🎨 Набор стикеров',
+            'color_gold': '🌈 Золотой ник',
+            'color_rainbow': '🌈 Радужный ник',
+            'promo_basic': '🎬 Промокод BASIC',
+            'promo_lux': '💎 Промокод LUX'
+        };
+
+        const listing = {
+            sellerEmail: currentUser.email,
+            sellerName: currentUser.name,
+            itemType: type,
+            itemName: names[type] || type,
+            price: price,
+            timestamp: Date.now(),
+            date: new Date().toLocaleString('ru-RU'),
+            status: 'pending' // На модерацию!
+        };
+
+        const ref = window.fbPush(window.fbRef(window.fbDb, 'market'));
+        await window.fbSet(ref, listing);
+
+        document.getElementById('market-item-type').value = '';
+        document.getElementById('market-price').value = '';
+
+        playSound('click');
+        alert('✅ Объявление отправлено на модерацию! Админ проверит и одобрит.');
+    };
+}
+
+// Обновляем renderMarket для показа статуса
+if(typeof renderMarket === 'function'){
+    renderMarket = function(){
+        const list = document.getElementById('market-listings');
+        if(!list) return;
+
+        const items = Object.entries(allMarketListings)
+            .filter(([id, item]) => {
+                // Обычные юзеры видят только одобренные
+                if(currentUser && (currentUser.isAdmin || currentUser.subscription === 'rapport')){
+                    return true; // Админ/раппорт видят все
+                }
+                // Свои объявления видно всегда
+                if(currentUser && item.sellerEmail === currentUser.email) return true;
+                return item.status === 'approved';
+            })
+            .sort((a, b) => (b[1].timestamp || 0) - (a[1].timestamp || 0));
+
+        if(!items.length){
+            list.innerHTML = '<p style="color:#555;text-align:center;padding:30px;">Нет объявлений</p>';
+            return;
+        }
+
+        list.innerHTML = '';
+        items.forEach(([id, item]) => {
+            const isMine = currentUser && item.sellerEmail === currentUser.email;
+            const isAdmin = currentUser && (currentUser.isAdmin || currentUser.subscription === 'rapport');
+            const isPending = item.status === 'pending';
+
+            let statusBadge = '';
+            if(isPending){
+                statusBadge = '<span style="background:#FF9800;color:white;padding:3px 8px;border-radius:8px;font-size:0.75rem;margin-left:8px;">⏳ НА ПРОВЕРКЕ</span>';
+            }
+
+            let actions = '';
+            if(isMine){
+                actions = `<button class="market-buy-btn" style="background:var(--red);" onclick="cancelMarketListing('${id}')">❌ СНЯТЬ</button>`;
+            } else if(!isPending){
+                actions = `<button class="market-buy-btn" onclick="buyMarketItem('${id}')">💰 КУПИТЬ</button>`;
+            }
+
+            // Кнопки модерации для админа
+            if(isAdmin && isPending){
+                actions = `
+                    <button class="market-buy-btn" style="background:var(--green);" onclick="approveMarketItem('${id}')">✅</button>
+                    <button class="market-buy-btn" style="background:var(--red);" onclick="rejectMarketItem('${id}')">❌</button>
+                `;
+            }
+
+            const div = document.createElement('div');
+            div.className = 'market-item';
+            if(isPending) div.style.borderLeft = '4px solid #FF9800';
+            div.innerHTML = `
+                <div class="market-item-icon">${item.itemName.split(' ')[0]}</div>
+                <div class="market-item-info">
+                    <div class="market-item-name">${item.itemName}${statusBadge}</div>
+                    <div class="market-item-seller">Продавец: ${item.sellerName} • ${item.date}</div>
+                </div>
+                <div class="market-item-price">${item.price} ₽</div>
+                ${actions}
+            `;
+            list.appendChild(div);
+        });
+    };
+}
+
+// Одобрить объявление
+async function approveMarketItem(id){
+    if(!currentUser || (!currentUser.isAdmin && currentUser.subscription !== 'rapport')){
+        alert('Нет доступа!');
+        return;
+    }
+    await fbUpdatePath(`market/${id}`, { status: 'approved' });
+    playSound('click');
+    alert('✅ Объявление одобрено!');
+}
+
+// Отклонить объявление
+async function rejectMarketItem(id){
+    if(!confirm('Отклонить объявление?')) return;
+    await fbRemovePath(`market/${id}`);
+    playSound('click');
+    alert('❌ Объявление отклонено и удалено!');
+}
+
+// Обновляем buyMarketItem чтобы нельзя было купить на модерации
+if(typeof buyMarketItem === 'function'){
+    const origBuyMarket = buyMarketItem;
+    buyMarketItem = async function(id){
+        const listing = allMarketListings[id];
+        if(!listing) return;
+        if(listing.status === 'pending'){
+            alert('❌ Это объявление ещё на модерации!');
+            return;
+        }
+        await origBuyMarket(id);
+    };
+}
+
+// Добавляем счётчик объявлений на модерации в дашборд
+if(typeof renderDashboard === 'function'){
+    const origRenderDashboard = renderDashboard;
+    renderDashboard = function(){
+        origRenderDashboard();
+        
+        // Добавляем карточку модерации биржи
+        const grid = document.getElementById('dashboard-grid');
+        if(!grid) return;
+        
+        const pendingMarket = Object.values(allMarketListings).filter(item => item.status === 'pending').length;
+        
+        const card = document.createElement('div');
+        card.className = 'dashboard-card';
+        card.innerHTML = `
+            <div class="dashboard-card-title">💱 БИРЖА НА МОДЕРАЦИИ</div>
+            <div class="dashboard-card-value" style="color:#FF9800;">${pendingMarket}</div>
+        `;
+        grid.appendChild(card);
+    };
+}
+
+// Фикс openAdmin чтобы рендерил все вкладки
+if(typeof openAdmin === 'function'){
+    const origOpenAdmin2 = openAdmin;
+    openAdmin = function(){
+        if(!currentUser) return;
+        if(!currentUser.isAdmin && currentUser.subscription !== 'rapport'){
+            alert('Нет доступа!');
+            return;
+        }
+        document.getElementById('admin-overlay').classList.add('show');
+        
+        // Рендерим все секции
+        if(typeof renderAdminStats === 'function') renderAdminStats();
+        if(typeof renderAdminUsers === 'function') renderAdminUsers();
+        if(typeof renderAdminPayments === 'function') renderAdminPayments();
+        if(typeof renderAdminComments === 'function') renderAdminComments();
+        if(typeof renderAdminTickets === 'function') renderAdminTickets();
+        if(typeof renderAdminPromos === 'function') renderAdminPromos();
+        if(typeof renderAdminEpisodes === 'function') renderAdminEpisodes();
+        if(typeof renderModerationList === 'function') renderModerationList();
+        if(typeof renderAnalytics === 'function') renderAnalytics();
+        if(typeof renderSerialsAdmin === 'function') renderSerialsAdmin();
+        if(typeof renderEventsList === 'function') renderEventsList();
+        if(typeof renderDashboard === 'function') renderDashboard();
+        if(typeof renderRapportsList === 'function') renderRapportsList();
+        if(typeof renderEasterEggsList === 'function') renderEasterEggsList();
+        if(typeof fillPaymentUserSelect === 'function') fillPaymentUserSelect();
+        if(typeof fillBoostFollowersSelect === 'function') fillBoostFollowersSelect();
+        if(typeof updateTicketsBadge === 'function') updateTicketsBadge();
+        if(typeof updateModerationBadge === 'function') updateModerationBadge();
+    };
+}
+// ============ ВЕЧНЫЙ ФИКС СЕРИЙ ============
+// Этот код ГАРАНТИРУЕТ что 50 серий THE DED всегда на месте
+
+// 1. Принудительно ставим totalEps = 50 для THE DED
+setInterval(() => {
+    const theDed = SERIALS.find(s => s.id === 'the-ded');
+    if(theDed && theDed.totalEps < 50){
+        theDed.totalEps = 50;
+    }
+}, 2000);
+
+// 2. Принудительно заполняем VIDEO_URLS
+for(let i = 1; i <= 50; i++){
+    if(!VIDEO_URLS[i]){
+        VIDEO_URLS[i] = `https://github.com/ivansabaev04-svg/theded-videos/releases/download/v1/${i}.mp4`;
+    }
+}
+
+// 3. Переопределяем updateSerialsFromFirebase чтобы НЕ трогала THE DED
+if(typeof updateSerialsFromFirebase === 'function'){
+    updateSerialsFromFirebase = function(){
+        Object.entries(allSerialsData).forEach(([id, data]) => {
+            // Обновляем VIDEO_URLS из Firebase
+            if(data.episodes){
+                Object.entries(data.episodes).forEach(([num, url]) => {
+                    VIDEO_URLS[num] = url;
+                });
+            }
+
+            // THE DED — НЕ ТРОГАЕМ totalEps!
+            if(id === 'the-ded'){
+                const existing = SERIALS.find(s => s.id === 'the-ded');
+                if(existing){
+                    // Только обновляем название/постер, НЕ totalEps
+                    if(data.poster) existing.poster = data.poster;
+                }
+                return;
+            }
+
+            // Другие сериалы — обычная логика
+            const existing = SERIALS.find(s => s.id === id);
+            if(!existing){
+                SERIALS.push({
+                    id: id,
+                    name: data.name || id,
+                    icon: data.icon || '🎬',
+                    totalEps: data.episodes ? Object.keys(data.episodes).length : 0,
+                    subOnly: data.vip || false,
+                    earlyEps: [],
+                    poster: data.poster || null
+                });
+            } else {
+                existing.name = data.name || existing.name;
+                existing.icon = data.icon || existing.icon;
+                existing.subOnly = data.vip !== undefined ? data.vip : existing.subOnly;
+                existing.poster = data.poster || existing.poster;
+                if(data.episodes){
+                    const count = Object.keys(data.episodes).length;
+                    if(count > 0) existing.totalEps = count;
+                }
+            }
+        });
+
+        // ГАРАНТИЯ: THE DED всегда 50 серий
+        const theDed = SERIALS.find(s => s.id === 'the-ded');
+        if(theDed) theDed.totalEps = 50;
+    };
+}
+
+// 4. Заливаем серии в Firebase (один раз)
+async function ensureTheDecEpisodes(){
+    if(!firebaseReady) return;
+    
+    const existing = await fbReadOnce('serials/the-ded/episodes');
+    if(existing && Object.keys(existing).length >= 50) return;
+
+    const episodes = {};
+    for(let i = 1; i <= 50; i++){
+        episodes[i] = `https://github.com/ivansabaev04-svg/theded-videos/releases/download/v1/${i}.mp4`;
+    }
+
+    await fbWrite('serials/the-ded', {
+        name: 'THE DED',
+        icon: '📁',
+        vip: false,
+        poster: 'https://github.com/ivansabaev04-svg/theded-videos/releases/download/v1/poster.png',
+        createdAt: Date.now(),
+        episodes: episodes
+    });
+}
+
+setTimeout(ensureTheDecEpisodes, 3000);
+
+// 5. При каждом renderFolders — проверяем
+if(typeof renderFolders === 'function'){
+    const origRF = renderFolders;
+    renderFolders = function(){
+        // Гарантируем 50 серий
+        const theDed = SERIALS.find(s => s.id === 'the-ded');
+        if(theDed) theDed.totalEps = 50;
+        
+        // Гарантируем VIDEO_URLS
+        for(let i = 1; i <= 50; i++){
+            if(!VIDEO_URLS[i]){
+                VIDEO_URLS[i] = `https://github.com/ivansabaev04-svg/theded-videos/releases/download/v1/${i}.mp4`;
+            }
+        }
+        
+        origRF();
+    };
+}
