@@ -4338,3 +4338,282 @@ body.season-spring {
 .avatar-frame.frame-skull::after { border: 3px solid #B71C1C; box-shadow: 0 0 15px #B71C1C, 0 0 30px rgba(183,28,28,0.3); }
 .avatar-frame.frame-crown::after { border: 3px solid var(--gold); box-shadow: 0 0 20px var(--gold), 0 0 40px rgba(255,215,0,0.4); animation: crown-glow 2s infinite alternate; }
 @keyframes crown-glow { from{box-shadow:0 0 10px var(--gold);} to{box-shadow:0 0 30px var(--gold), 0 0 60px rgba(255,215,0,0.5);} }
+
+/* ===== ЗМЕЙКА ===== */
+.snake-board {
+    display: grid;
+    gap: 0;
+    max-width: 300px;
+    margin: 10px auto;
+    border: 2px solid var(--red);
+    border-radius: 5px;
+    background: #0a0a0a;
+}
+
+.snake-cell {
+    aspect-ratio: 1;
+    background: #111;
+}
+
+.snake-cell.snake { background: var(--green); border-radius: 3px; }
+.snake-cell.head { background: #66BB6A; border-radius: 3px; }
+.snake-cell.food { background: var(--red); border-radius: 50%; }
+
+/* ===== ФЛЕШ-КАРТОЧКИ (МЕМОРИ) ===== */
+.memory-board {
+    display: grid;
+    gap: 8px;
+    max-width: 350px;
+    margin: 15px auto;
+}
+
+.memory-card {
+    aspect-ratio: 1;
+    background: var(--card-bg);
+    border: 2px solid #333;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+    cursor: pointer;
+    transition: 0.3s;
+    user-select: none;
+}
+
+.memory-card:hover { border-color: var(--red); }
+.memory-card.flipped { background: #1a1a2e; border-color: var(--blue); }
+.memory-card.matched { background: rgba(76,175,80,0.2); border-color: var(--green); opacity: 0.7; }
+.memory-card.hidden-card { font-size: 1.5rem; color: #555; }
+
+/* ===== КЛИКЕР ===== */
+.clicker-area {
+    text-align: center;
+    padding: 20px;
+}
+
+.clicker-target {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--red), #FF5722);
+    margin: 20px auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 3rem;
+    cursor: pointer;
+    transition: 0.1s;
+    user-select: none;
+    box-shadow: 0 5px 20px rgba(229,9,20,0.5);
+}
+
+.clicker-target:active {
+    transform: scale(0.9);
+    box-shadow: 0 2px 10px rgba(229,9,20,0.3);
+}
+
+.clicker-score {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 4rem;
+    color: var(--gold);
+    letter-spacing: 5px;
+}
+
+.clicker-timer {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 2rem;
+    color: var(--red);
+    letter-spacing: 3px;
+}
+
+/* ===== РЕАКЦИЯ ===== */
+.reaction-game-area {
+    text-align: center;
+    min-height: 300px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.reaction-circle {
+    width: 150px;
+    height: 150px;
+    border-radius: 50%;
+    margin: 20px auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    color: white;
+    font-family: 'Bebas Neue', sans-serif;
+    letter-spacing: 3px;
+    cursor: pointer;
+    transition: background 0.1s;
+}
+
+.reaction-circle.waiting { background: #B71C1C; }
+.reaction-circle.ready { background: var(--green); }
+.reaction-circle.clicked { background: var(--blue); }
+
+/* ===== ЧИСЛОВАЯ ИГРА (2048 стиль) ===== */
+.number-board {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 6px;
+    max-width: 280px;
+    margin: 15px auto;
+    background: #111;
+    padding: 8px;
+    border-radius: 10px;
+}
+
+.number-cell {
+    aspect-ratio: 1;
+    background: #222;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.3rem;
+    color: white;
+    transition: 0.15s;
+}
+
+.number-cell.n2 { background: #EDE0C8; color: #776E65; }
+.number-cell.n4 { background: #EDE0C8; color: #776E65; }
+.number-cell.n8 { background: #F2B179; color: white; }
+.number-cell.n16 { background: #F59563; color: white; }
+.number-cell.n32 { background: #F67C5F; color: white; }
+.number-cell.n64 { background: #F65E3B; color: white; }
+.number-cell.n128 { background: #EDCF72; color: white; font-size: 1.1rem; }
+.number-cell.n256 { background: #EDCC61; color: white; font-size: 1.1rem; }
+.number-cell.n512 { background: #EDC850; color: white; font-size: 1rem; }
+.number-cell.n1024 { background: #EDC53F; color: white; font-size: 0.9rem; }
+.number-cell.n2048 { background: #EDC22E; color: white; font-size: 0.9rem; }
+
+/* ===== МУЛЬТИПЛЕЕР МОРСКОЙ БОЙ ===== */
+.battleship-boards {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.battleship-board {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 2px;
+    max-width: 210px;
+}
+
+.battleship-label {
+    text-align: center;
+    font-family: 'Bebas Neue', sans-serif;
+    letter-spacing: 2px;
+    margin-bottom: 5px;
+    font-size: 0.9rem;
+}
+
+.bs-cell {
+    aspect-ratio: 1;
+    background: #1a3a5c;
+    border-radius: 3px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: 0.2s;
+    font-size: 0.8rem;
+}
+
+.bs-cell:hover { background: #2a5a8c; }
+.bs-cell.ship { background: #555; }
+.bs-cell.hit { background: var(--red); }
+.bs-cell.miss { background: #333; }
+.bs-cell.sunk { background: #B71C1C; }
+
+/* ===== КАМЕНЬ-НОЖНИЦЫ-БУМАГА ===== */
+.rps-choices {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+    margin: 20px 0;
+}
+
+.rps-choice {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: var(--card-bg);
+    border: 3px solid #333;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2.5rem;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+.rps-choice:hover {
+    border-color: var(--red);
+    transform: scale(1.15);
+}
+
+.rps-choice.selected { border-color: var(--green); background: rgba(76,175,80,0.2); }
+.rps-choice.win { border-color: var(--gold); box-shadow: 0 0 20px var(--gold); }
+.rps-choice.lose { border-color: var(--red); opacity: 0.5; }
+
+.rps-vs {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 3rem;
+    color: var(--red);
+    text-align: center;
+    margin: 10px 0;
+}
+
+.rps-result {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.5rem;
+    letter-spacing: 3px;
+    text-align: center;
+    margin: 15px 0;
+    min-height: 40px;
+}
+
+.rps-score-board {
+    display: flex;
+    justify-content: center;
+    gap: 30px;
+    margin: 15px 0;
+}
+
+.rps-score-item {
+    text-align: center;
+}
+
+.rps-score-num {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 2rem;
+    color: var(--gold);
+}
+
+.rps-score-label {
+    color: #888;
+    font-size: 0.8rem;
+}
+
+/* Общие стили мобильных игр */
+@media (max-width: 768px) {
+    .snake-board { max-width: 260px; }
+    .memory-board { max-width: 300px; }
+    .number-board { max-width: 240px; }
+    .number-cell { font-size: 1rem; }
+    .clicker-target { width: 100px; height: 100px; font-size: 2.5rem; }
+    .clicker-score { font-size: 3rem; }
+    .rps-choice { width: 65px; height: 65px; font-size: 2rem; }
+    .battleship-board { max-width: 180px; }
+    .bs-cell { font-size: 0.7rem; }
+}
