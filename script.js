@@ -6275,3 +6275,239 @@ document.addEventListener('keydown', (e) => {
     if(e.key === 'ArrowDown') tetrisMove('down');
     if(e.key === 'ArrowUp') tetrisMove('rotate');
 });
+// ============ ЗМЕЙКА ============
+let snakeBody=[], snakeFood={}, snakeDirection='right', snakeInterval=null, snakeScore=0, snakeSize=15, snakeGameOver=false;
+
+function openSnake(){resetSnake();document.getElementById('snake-modal').classList.add('show');}
+function closeSnake(){clearInterval(snakeInterval);document.getElementById('snake-modal').classList.remove('show');}
+
+function resetSnake(){
+    clearInterval(snakeInterval);
+    snakeBody=[{x:7,y:7},{x:6,y:7},{x:5,y:7}];
+    snakeDirection='right';snakeScore=0;snakeGameOver=false;
+    placeSnakeFood();
+    document.getElementById('snake-score').textContent='Очки: 0';
+    renderSnake();
+    snakeInterval=setInterval(snakeTick,200);
+}
+
+function placeSnakeFood(){
+    do{snakeFood={x:Math.floor(Math.random()*snakeSize),y:Math.floor(Math.random()*snakeSize)};}
+    while(snakeBody.some(s=>s.x===snakeFood.x&&s.y===snakeFood.y));
+}
+
+function snakeDir(d){
+    if(d==='left'&&snakeDirection!=='right')snakeDirection='left';
+    if(d==='right'&&snakeDirection!=='left')snakeDirection='right';
+    if(d==='up'&&snakeDirection!=='down')snakeDirection='up';
+    if(d==='down'&&snakeDirection!=='up')snakeDirection='down';
+}
+
+function snakeTick(){
+    if(snakeGameOver)return;
+    const head={...snakeBody[0]};
+    if(snakeDirection==='left')head.x--;if(snakeDirection==='right')head.x++;
+    if(snakeDirection==='up')head.y--;if(snakeDirection==='down')head.y++;
+    if(head.x<0||head.x>=snakeSize||head.y<0||head.y>=snakeSize||snakeBody.some(s=>s.x===head.x&&s.y===head.y)){
+        snakeGameOver=true;clearInterval(snakeInterval);playSound('lose');
+        document.getElementById('snake-score').textContent=`💀 Конец! Очки: ${snakeScore}`;return;
+    }
+    snakeBody.unshift(head);
+    if(head.x===snakeFood.x&&head.y===snakeFood.y){snakeScore+=10;playSound('tetris_clear');placeSnakeFood();document.getElementById('snake-score').textContent=`Очки: ${snakeScore}`;}
+    else{snakeBody.pop();}
+    renderSnake();
+}
+
+function renderSnake(){
+    const board=document.getElementById('snake-board');if(!board)return;
+    board.style.gridTemplateColumns=`repeat(${snakeSize},1fr)`;board.innerHTML='';
+    for(let y=0;y<snakeSize;y++){for(let x=0;x<snakeSize;x++){
+        const div=document.createElement('div');div.className='snake-cell';
+        if(snakeBody[0]&&snakeBody[0].x===x&&snakeBody[0].y===y)div.classList.add('head');
+        else if(snakeBody.some(s=>s.x===x&&s.y===y))div.classList.add('snake');
+        if(snakeFood.x===x&&snakeFood.y===y)div.classList.add('food');
+        board.appendChild(div);
+    }}
+}
+
+document.addEventListener('keydown',e=>{if(!document.getElementById('snake-modal').classList.contains('show'))return;
+    if(e.key==='ArrowLeft')snakeDir('left');if(e.key==='ArrowRight')snakeDir('right');
+    if(e.key==='ArrowUp'){e.preventDefault();snakeDir('up');}if(e.key==='ArrowDown'){e.preventDefault();snakeDir('down');}
+});
+
+// ============ МЕМОРИ ============
+let memoryCards=[],memoryFlipped=[],memoryMatched=0,memoryLocked=false,memoryMoves=0;
+const MEMORY_EMOJIS=['🎮','🎬','💎','🔥','⚡','🌟','👑','🎁'];
+
+function openMemory(){resetMemory();document.getElementById('memory-modal').classList.add('show');}
+function closeMemory(){document.getElementById('memory-modal').classList.remove('show');}
+
+function resetMemory(){
+    const pairs=[...MEMORY_EMOJIS,...MEMORY_EMOJIS];
+    memoryCards=pairs.sort(()=>Math.random()-0.5);
+    memoryFlipped=new Array(16).fill(false);memoryMatched=0;memoryMoves=0;memoryLocked=false;
+    document.getElementById('memory-info').textContent='Найди все пары! Ходов: 0';
+    renderMemory();
+}
+
+function renderMemory(){
+    const board=document.getElementById('memory-board');if(!board)return;
+    board.style.gridTemplateColumns='repeat(4,1fr)';board.innerHTML='';
+    memoryCards.forEach((emoji,i)=>{
+        const div=document.createElement('div');
+        div.className='memory-card'+(memoryFlipped[i]?' flipped':'')+(memoryFlipped[i]==='matched'?' matched':' hidden-card');
+        div.textContent=memoryFlipped[i]?emoji:'❓';
+        if(!memoryFlipped[i])div.onclick=()=>flipMemoryCard(i);
+        board.appendChild(div);
+    });
+}
+
+function flipMemoryCard(i){
+    if(memoryLocked||memoryFlipped[i])return;
+    memoryFlipped[i]=true;playSound('click');
+    const flippedIndices=memoryFlipped.map((f,idx)=>f===true?idx:-1).filter(x=>x>=0);
+    renderMemory();
+    if(flippedIndices.length===2){
+        memoryLocked=true;memoryMoves++;
+        document.getElementById('memory-info').textContent=`Ходов: ${memoryMoves}`;
+        const[a,b]=flippedIndices;
+        if(memoryCards[a]===memoryCards[b]){
+            memoryFlipped[a]='matched';memoryFlipped[b]='matched';memoryMatched+=2;memoryLocked=false;
+            playSound('like');renderMemory();
+            if(memoryMatched===16){playSound('win');document.getElementById('memory-info').textContent=`🎉 Победа за ${memoryMoves} ходов!`;}
+        }else{
+            setTimeout(()=>{memoryFlipped[a]=false;memoryFlipped[b]=false;memoryLocked=false;renderMemory();},800);
+        }
+    }
+}
+
+// ============ КЛИКЕР ============
+let clickerCount=0,clickerTime=10,clickerRunning=false,clickerInterval=null;
+
+function openClicker(){clickerCount=0;clickerTime=10;clickerRunning=false;
+    document.getElementById('clicker-score').textContent='0';
+    document.getElementById('clicker-timer').textContent='10 сек';
+    document.getElementById('clicker-modal').classList.add('show');}
+function closeClicker(){clearInterval(clickerInterval);document.getElementById('clicker-modal').classList.remove('show');}
+
+function startClicker(){
+    if(clickerRunning)return;clickerRunning=true;clickerCount=0;clickerTime=10;
+    document.getElementById('clicker-score').textContent='0';
+    clickerInterval=setInterval(()=>{
+        clickerTime--;document.getElementById('clicker-timer').textContent=`${clickerTime} сек`;
+        if(clickerTime<=0){clearInterval(clickerInterval);clickerRunning=false;playSound('win');
+            document.getElementById('clicker-timer').textContent=`🏆 Результат: ${clickerCount} кликов!`;}
+    },1000);
+}
+
+function clickerClick(){
+    if(!clickerRunning)return;clickerCount++;playSound('move');
+    document.getElementById('clicker-score').textContent=clickerCount;
+    const target=document.getElementById('clicker-target');
+    target.style.transform='scale(0.9)';setTimeout(()=>target.style.transform='',100);
+}
+
+// ============ РЕАКЦИЯ ============
+let reactionTimeout=null,reactionStart=0,reactionReady=false;
+
+function openReactionGame(){document.getElementById('reaction-modal').classList.add('show');document.getElementById('reaction-result').textContent='';}
+function closeReaction(){clearTimeout(reactionTimeout);document.getElementById('reaction-modal').classList.remove('show');}
+
+function startReaction(){
+    const circle=document.getElementById('reaction-circle');
+    circle.className='reaction-circle waiting';circle.textContent='ЖДИТЕ...';
+    document.getElementById('reaction-result').textContent='';reactionReady=false;
+    const delay=1000+Math.random()*4000;
+    reactionTimeout=setTimeout(()=>{
+        circle.className='reaction-circle ready';circle.textContent='ЖМИТЕ!';reactionReady=true;reactionStart=Date.now();
+    },delay);
+}
+
+function reactionClick(){
+    const circle=document.getElementById('reaction-circle');
+    if(!reactionReady){
+        if(circle.classList.contains('waiting')){clearTimeout(reactionTimeout);
+            document.getElementById('reaction-result').textContent='❌ Слишком рано! Попробуй снова.';
+            circle.className='reaction-circle waiting';circle.textContent='ЖДИТЕ';playSound('error');}
+        return;
+    }
+    const time=Date.now()-reactionStart;reactionReady=false;
+    circle.className='reaction-circle clicked';circle.textContent=`${time} мс`;playSound('win');
+    let rating='';
+    if(time<200)rating='🏆 НЕВЕРОЯТНО!';else if(time<300)rating='🥇 ОТЛИЧНО!';
+    else if(time<400)rating='🥈 ХОРОШО!';else if(time<500)rating='🥉 НОРМАЛЬНО';else rating='📚 Тренируйся!';
+    document.getElementById('reaction-result').textContent=`${time} мс — ${rating}`;
+}
+
+// ============ 2048 ============
+let numberBoard2048=[],numberScore2048=0,numberGameOver2048=false;
+
+function openNumberGame(){resetNumberGame();document.getElementById('number-modal').classList.add('show');}
+function closeNumberGame(){document.getElementById('number-modal').classList.remove('show');}
+
+function resetNumberGame(){
+    numberBoard2048=Array(4).fill(null).map(()=>Array(4).fill(0));numberScore2048=0;numberGameOver2048=false;
+    addRandomTile();addRandomTile();
+    document.getElementById('number-score').textContent='Очки: 0';renderNumberBoard();
+}
+
+function addRandomTile(){
+    const empty=[];
+    for(let r=0;r<4;r++)for(let c=0;c<4;c++)if(!numberBoard2048[r][c])empty.push({r,c});
+    if(!empty.length)return;
+    const pos=empty[Math.floor(Math.random()*empty.length)];
+    numberBoard2048[pos.r][pos.c]=Math.random()<0.9?2:4;
+}
+
+function numberMove(dir){
+    if(numberGameOver2048)return;
+    let moved=false;const b=numberBoard2048;
+    if(dir==='left'){for(let r=0;r<4;r++){const row=b[r].filter(x=>x);for(let i=0;i<row.length-1;i++){if(row[i]===row[i+1]){row[i]*=2;numberScore2048+=row[i];row.splice(i+1,1);}}while(row.length<4)row.push(0);if(JSON.stringify(b[r])!==JSON.stringify(row))moved=true;b[r]=row;}}
+    else if(dir==='right'){for(let r=0;r<4;r++){const row=b[r].filter(x=>x).reverse();for(let i=0;i<row.length-1;i++){if(row[i]===row[i+1]){row[i]*=2;numberScore2048+=row[i];row.splice(i+1,1);}}while(row.length<4)row.push(0);row.reverse();if(JSON.stringify(b[r])!==JSON.stringify(row))moved=true;b[r]=row;}}
+    else if(dir==='up'){for(let c=0;c<4;c++){let col=[];for(let r=0;r<4;r++)col.push(b[r][c]);const orig=JSON.stringify(col);col=col.filter(x=>x);for(let i=0;i<col.length-1;i++){if(col[i]===col[i+1]){col[i]*=2;numberScore2048+=col[i];col.splice(i+1,1);}}while(col.length<4)col.push(0);if(JSON.stringify(col)!==orig)moved=true;for(let r=0;r<4;r++)b[r][c]=col[r];}}
+    else if(dir==='down'){for(let c=0;c<4;c++){let col=[];for(let r=0;r<4;r++)col.push(b[r][c]);const orig=JSON.stringify(col);col=col.filter(x=>x).reverse();for(let i=0;i<col.length-1;i++){if(col[i]===col[i+1]){col[i]*=2;numberScore2048+=col[i];col.splice(i+1,1);}}while(col.length<4)col.push(0);col.reverse();if(JSON.stringify(col)!==orig)moved=true;for(let r=0;r<4;r++)b[r][c]=col[r];}}
+    if(moved){addRandomTile();playSound('move');document.getElementById('number-score').textContent=`Очки: ${numberScore2048}`;
+        if(b.flat().includes(2048)){playSound('win');document.getElementById('number-score').textContent=`🎉 ПОБЕДА! Очки: ${numberScore2048}`;numberGameOver2048=true;}
+        else if(!b.flat().includes(0)){let canMove=false;for(let r=0;r<4;r++)for(let c=0;c<3;c++){if(b[r][c]===b[r][c+1])canMove=true;}for(let c=0;c<4;c++)for(let r=0;r<3;r++){if(b[r][c]===b[r+1][c])canMove=true;}if(!canMove){numberGameOver2048=true;playSound('lose');document.getElementById('number-score').textContent=`Конец! Очки: ${numberScore2048}`;}}
+    }
+    renderNumberBoard();
+}
+
+function renderNumberBoard(){
+    const board=document.getElementById('number-board');if(!board)return;board.innerHTML='';
+    for(let r=0;r<4;r++)for(let c=0;c<4;c++){
+        const div=document.createElement('div');div.className='number-cell'+(numberBoard2048[r][c]?` n${numberBoard2048[r][c]}`:'');
+        div.textContent=numberBoard2048[r][c]||'';board.appendChild(div);
+    }
+}
+
+document.addEventListener('keydown',e=>{if(!document.getElementById('number-modal').classList.contains('show'))return;
+    if(e.key==='ArrowLeft')numberMove('left');if(e.key==='ArrowRight')numberMove('right');
+    if(e.key==='ArrowUp'){e.preventDefault();numberMove('up');}if(e.key==='ArrowDown'){e.preventDefault();numberMove('down');}
+});
+
+// ============ КАМЕНЬ-НОЖНИЦЫ-БУМАГА ============
+let rpsWins=0,rpsDraws=0,rpsLosses=0;
+
+function openRPS(){rpsWins=0;rpsDraws=0;rpsLosses=0;updateRPSScore();
+    document.getElementById('rps-result').textContent='Выбери!';document.getElementById('rps-display').textContent='';
+    document.getElementById('rps-modal').classList.add('show');}
+function closeRPS(){document.getElementById('rps-modal').classList.remove('show');}
+
+function playRPS(choice){
+    const choices=['rock','scissors','paper'];const emojis={rock:'✊',scissors:'✌️',paper:'🖐️'};
+    const comp=choices[Math.floor(Math.random()*3)];
+    document.getElementById('rps-display').textContent=`${emojis[choice]} VS ${emojis[comp]}`;
+    let result='';
+    if(choice===comp){result='🤝 НИЧЬЯ!';rpsDraws++;playSound('move');}
+    else if((choice==='rock'&&comp==='scissors')||(choice==='scissors'&&comp==='paper')||(choice==='paper'&&comp==='rock')){
+        result='🎉 ТЫ ПОБЕДИЛ!';rpsWins++;playSound('win');}
+    else{result='😢 ПРОИГРЫШ!';rpsLosses++;playSound('lose');}
+    document.getElementById('rps-result').textContent=result;updateRPSScore();
+}
+
+function updateRPSScore(){
+    document.getElementById('rps-wins').textContent=rpsWins;
+    document.getElementById('rps-draws').textContent=rpsDraws;
+    document.getElementById('rps-losses').textContent=rpsLosses;
+}
