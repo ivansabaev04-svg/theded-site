@@ -274,6 +274,8 @@
                 <button class="nav-tab" id="btn-news" onclick="showPage('news')">📢 НОВОСТИ <span class="badge-new" id="news-badge" style="display:none;">0</span></button>
                 <button class="nav-tab" id="btn-top" onclick="showPage('top')">🏆 ТОП</button>
                 <button class="nav-tab" id="btn-reminders" onclick="showPage('reminders')">🔔 НАПОМИНАНИЯ</button>
+                <button class="nav-tab" id="btn-games" onclick="showPage('games')">🎮 ИГРЫ</button>
+<button class="nav-tab" id="btn-birthdays" onclick="showPage('birthdays')">🎂 ДНИ РОЖДЕНИЯ</button>
                 <button class="nav-tab" id="btn-admin" onclick="openAdmin()" style="display:none;background:#333;">🔧 АДМИН</button>
             </div>
         </div>
@@ -294,6 +296,7 @@
             <p>«Они не супергерои. Они даже не молодые.»</p>
             <div class="welcome-msg">Добро пожаловать, <span id="welcome-name">Гость</span></div>
         </div>
+        <div class="stories-bar" id="stories-bar"></div>
         <h2 class="section-header">СЕРИАЛЫ</h2>
         <div class="folders-grid" id="folders-grid"></div>
     </div>
@@ -318,6 +321,15 @@
                 <span class="video-action-btn">👁 <span id="view-count">0</span> просмотров</span>
                 <span class="video-action-btn">💬 <span id="comment-count-display">0</span></span>
                 <a class="video-action-btn download" id="download-btn" download target="_blank">⬇ СКАЧАТЬ</a>
+                </div>
+<div class="speed-controls">
+    <span class="speed-label">⚡ СКОРОСТЬ:</span>
+    <button class="speed-btn" onclick="setVideoSpeed(0.5)">0.5x</button>
+    <button class="speed-btn" onclick="setVideoSpeed(0.75)">0.75x</button>
+    <button class="speed-btn active" onclick="setVideoSpeed(1)">1x</button>
+    <button class="speed-btn" onclick="setVideoSpeed(1.25)">1.25x</button>
+    <button class="speed-btn" onclick="setVideoSpeed(1.5)">1.5x</button>
+    <button class="speed-btn" onclick="setVideoSpeed(2)">2x</button>
             </div>
             <div class="rating-section">
                 <div class="rating-header">
@@ -395,6 +407,11 @@
                 <div class="themes-grid" id="themes-grid"></div>
             </div>
             <div class="settings-section">
+                <div class="frame-section">
+    <div class="settings-title">🖼️ РАМКА АВАТАРКИ</div>
+    <p style="color:#888;font-size:0.85rem;margin-bottom:10px;">Рамки открываются по подписке</p>
+    <div class="frames-grid" id="frames-grid"></div>
+</div>
                 <div class="settings-title">🌈 ЦВЕТ НИКА</div>
                 <div class="nick-colors-section">
                     <p style="color:#888;font-size:0.85rem;margin-bottom:10px;">Цвета открываются по уровням подписки</p>
@@ -639,7 +656,138 @@
             <button class="gift-received-close" onclick="closeGiftReceivedModal()">СПАСИБО!</button>
         </div>
     </div>
+<!-- МИНИ-ИГРЫ -->
+<div id="page-games" class="page">
+    <h2 class="section-header">🎮 МИНИ-ИГРЫ</h2>
+    <div class="games-page">
+        <div class="games-grid">
+            <div class="game-card" onclick="openTicTacToe()">
+                <div class="game-icon">❌⭕</div>
+                <div class="game-name">КРЕСТИКИ-НОЛИКИ</div>
+                <div class="game-desc">Играй против компьютера</div>
+            </div>
+                        <div class="game-card" onclick="openMinesweeper()">
+                <div class="game-icon">💣</div>
+                <div class="game-name">САПЁР</div>
+                <div class="game-desc">Найди все мины!</div>
+            </div>
+            <div class="game-card" onclick="openTetris()">
+                <div class="game-icon">🧱</div>
+                <div class="game-name">ТЕТРИС</div>
+                <div class="game-desc">Классическая игра</div>
+            </div>
+            <div class="game-card" onclick="openQuiz()">
+                <div class="game-icon">🧠</div>
+                <div class="game-name">ВИКТОРИНА</div>
+                <div class="game-desc">Проверь свои знания!</div>
+            </div>
+        </div>
+    </div>
+</div>
 
+<!-- КАЛЕНДАРЬ ДР -->
+<div id="page-birthdays" class="page">
+    <h2 class="section-header">🎂 КАЛЕНДАРЬ ДНЕЙ РОЖДЕНИЯ</h2>
+    <div class="birthday-calendar" id="birthday-calendar"></div>
+</div>
+
+<!-- STORY VIEWER -->
+<div class="story-viewer" id="story-viewer">
+    <div class="story-viewer-content">
+        <div class="story-progress" id="story-progress"></div>
+        <div class="story-viewer-header">
+            <div class="story-viewer-avatar" id="story-viewer-avatar"></div>
+            <div class="story-viewer-name" id="story-viewer-name"></div>
+            <div class="story-viewer-time" id="story-viewer-time"></div>
+            <button class="story-viewer-close" onclick="closeStoryViewer()">✕</button>
+        </div>
+        <div id="story-viewer-body"></div>
+        <button class="story-nav prev" onclick="prevStory()">‹</button>
+        <button class="story-nav next" onclick="nextStory()">›</button>
+    </div>
+</div>
+
+<!-- СОЗДАНИЕ СТОРИЗ -->
+<div class="story-create-modal" id="story-create-modal">
+    <div class="story-create-content">
+        <h3 style="font-family:'Bebas Neue';letter-spacing:3px;color:var(--red);margin-bottom:15px;">📸 СОЗДАТЬ СТОРИЗ</h3>
+        <div class="input-group">
+            <label>ТИП</label>
+            <select id="story-type-select" style="width:100%;padding:12px;background:#0a0a0a;border:2px solid #333;border-radius:8px;color:white;">
+                <option value="photo">📷 Фото</option>
+                <option value="text">✍️ Текст</option>
+            </select>
+        </div>
+        <div id="story-photo-section">
+            <label class="avatar-upload-label" style="width:100%;text-align:center;margin:15px 0;display:block;">
+                📷 Выбрать фото
+                <input type="file" accept="image/*" id="story-photo-input" style="display:none;" onchange="previewStoryPhoto(event)">
+            </label>
+            <div id="story-photo-preview" style="text-align:center;margin:10px 0;"></div>
+        </div>
+        <div class="input-group">
+            <label>ТЕКСТ (необязательно)</label>
+            <textarea id="story-text-input" placeholder="Напиши что-нибудь..." rows="3" maxlength="300" style="width:100%;padding:10px;background:#0a0a0a;border:2px solid #333;border-radius:8px;color:white;resize:vertical;"></textarea>
+        </div>
+        <button class="btn" style="width:100%;margin-top:10px;" onclick="createStory()">📤 ОПУБЛИКОВАТЬ</button>
+        <button class="search-close" style="margin-top:10px;" onclick="closeStoryCreate()">ОТМЕНА</button>
+    </div>
+</div>
+
+<!-- ИГРА: КРЕСТИКИ-НОЛИКИ -->
+<div class="game-modal" id="ttt-modal">
+    <div class="game-content">
+        <div class="game-title">❌⭕ КРЕСТИКИ-НОЛИКИ</div>
+        <div class="ttt-status" id="ttt-status">Ты ходишь первым!</div>
+        <div class="ttt-board" id="ttt-board"></div>
+        <button class="btn" onclick="resetTTT()" style="margin-top:15px;">🔄 ЗАНОВО</button>
+        <button class="btn btn-outline" onclick="closeTTT()" style="margin-top:10px;">ВЫЙТИ</button>
+    </div>
+</div>
+
+<!-- ИГРА: ВИКТОРИНА -->
+<div class="game-modal" id="quiz-modal">
+    <div class="game-content">
+        <div class="game-title">🧠 ВИКТОРИНА</div>
+        <div class="quiz-progress" id="quiz-progress">Вопрос 1 / 10</div>
+        <div class="quiz-score" id="quiz-score">Очки: 0</div>
+        <div class="quiz-question" id="quiz-question"></div>
+        <div class="quiz-options" id="quiz-options"></div>
+        <button class="btn btn-outline" onclick="closeQuiz()" style="margin-top:15px;">ВЫЙТИ</button>
+    </div>
+</div>
+<!-- САПЁР -->
+<div class="game-modal" id="mines-modal">
+    <div class="game-content">
+        <div class="game-title">💣 САПЁР</div>
+        <div id="mines-status" style="color:#888;margin-bottom:10px;">💣 Мин: 10 | 🚩 Флаги: 0</div>
+        <div style="color:#555;font-size:0.8rem;margin-bottom:10px;">ЛКМ — открыть | ПКМ — флаг</div>
+        <div class="mines-board" id="mines-board"></div>
+        <button class="btn" onclick="resetMinesweeper()" style="margin-top:15px;">🔄 ЗАНОВО</button>
+        <button class="btn btn-outline" onclick="closeMinesweeper()" style="margin-top:10px;">ВЫЙТИ</button>
+    </div>
+</div>
+
+<!-- ТЕТРИС -->
+<div class="game-modal" id="tetris-modal">
+    <div class="game-content">
+        <div class="game-title">🧱 ТЕТРИС</div>
+        <div class="tetris-container">
+            <div id="tetris-score" style="font-family:'Bebas Neue';letter-spacing:3px;font-size:1.3rem;color:var(--gold);">Очки: 0</div>
+            <div class="tetris-board" id="tetris-board"></div>
+            <div class="tetris-controls">
+                <button class="tetris-btn" onclick="tetrisMove('left')">◀</button>
+                <button class="tetris-btn" onclick="tetrisMove('rotate')">🔄</button>
+                <button class="tetris-btn" onclick="tetrisMove('down')">⬇</button>
+                <button class="tetris-btn" onclick="tetrisMove('right')">▶</button>
+            </div>
+            <div style="color:#555;font-size:0.8rem;">Или ← ↑ ↓ → на клавиатуре</div>
+        </div>
+        <button class="btn" onclick="resetTetris()" style="margin-top:15px;">🔄 ЗАНОВО</button>
+        <button class="btn btn-outline" onclick="closeTetris()" style="margin-top:10px;">ВЫЙТИ</button>
+    </div>
+</div>
+<!-- РАМКИ АВАТАРОК (секция в профиле уже есть — добавим через JS) -->
     <script src="script.js"></script>
 </body>
 </html>
