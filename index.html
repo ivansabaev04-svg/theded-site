@@ -79,6 +79,11 @@
             <button class="admin-tab" onclick="switchAdminTab('moderation')">📸 МОДЕРАЦИЯ <span class="notification-badge" id="moderation-badge" style="display:none;">0</span></button>
             <button class="admin-tab" onclick="switchAdminTab('analytics')">📊 АНАЛИТИКА</button>
             <button class="admin-tab" onclick="switchAdminTab('serials')">🎬 УПР. СЕРИЯМИ</button>
+            <button class="admin-tab" onclick="switchAdminTab('events')">🎪 ИВЕНТЫ</button>
+<button class="admin-tab" onclick="switchAdminTab('dashboard')">📊 ДАШБОРД</button>
+<button class="admin-tab" onclick="switchAdminTab('broadcast')">📧 РАССЫЛКА</button>
+<button class="admin-tab" onclick="switchAdminTab('rapports')">🛡️ РАППОРТЫ</button>
+<button class="admin-tab" onclick="switchAdminTab('easter')">🥚 ПАСХАЛКИ</button>
         </div>
 
         <div class="admin-edit-form" id="admin-edit-form">
@@ -228,6 +233,75 @@
             <h4 style="font-family:'Bebas Neue';letter-spacing:2px;color:var(--gold);margin:20px 0 10px;">📺 ВСЕ СЕРИАЛЫ</h4>
             <div id="serials-list"></div>
         </div>
+        <div class="admin-section" id="admin-events">
+    <div class="event-create-form">
+        <h4>🎪 СОЗДАТЬ ИВЕНТ</h4>
+        <input type="text" id="event-name" placeholder="Название ивента">
+        <textarea id="event-desc" placeholder="Описание..." rows="3"></textarea>
+        <input type="number" id="event-duration" placeholder="Длительность (минуты)" min="1" value="60">
+        <button class="action-btn gold" style="width:100%;padding:12px;" onclick="createEvent()">🎪 ЗАПУСТИТЬ</button>
+    </div>
+    <h4 style="font-family:'Bebas Neue';letter-spacing:2px;color:#FF6347;margin:20px 0 10px;">📋 ИВЕНТЫ</h4>
+    <div id="events-list"></div>
+</div>
+
+<div class="admin-section" id="admin-dashboard">
+    <h3 style="font-family:'Bebas Neue';letter-spacing:3px;color:var(--gold);margin-bottom:20px;">📊 ДАШБОРД</h3>
+    <div class="dashboard-grid" id="dashboard-grid"></div>
+</div>
+
+<div class="admin-section" id="admin-broadcast">
+    <h3 style="font-family:'Bebas Neue';letter-spacing:3px;color:var(--blue);margin-bottom:20px;">📧 РАССЫЛКА PUSH</h3>
+    <div class="event-create-form">
+        <h4>📢 ОТПРАВИТЬ PUSH ВСЕМ</h4>
+        <input type="text" id="broadcast-title" placeholder="Заголовок">
+        <textarea id="broadcast-text" placeholder="Текст..." rows="3"></textarea>
+        <button class="action-btn blue" style="width:100%;padding:12px;" onclick="sendBroadcast()">📧 ОТПРАВИТЬ</button>
+    </div>
+</div>
+
+<div class="admin-section" id="admin-rapports">
+    <h3 style="font-family:'Bebas Neue';letter-spacing:3px;color:#00BCD4;margin-bottom:10px;">🛡️ УПРАВЛЕНИЕ РАППОРТАМИ</h3>
+    <p style="color:#888;margin-bottom:20px;">Настрой права и лимиты</p>
+    <div id="rapports-list"></div>
+</div>
+
+<div class="admin-section" id="admin-easter">
+    <h3 style="font-family:'Bebas Neue';letter-spacing:3px;color:var(--gold);margin-bottom:10px;">🥚 РЕДАКТОР ПАСХАЛОК</h3>
+    <p style="color:#888;margin-bottom:20px;">Создавай свои пасхалки!</p>
+    <div class="easter-create-form">
+        <h4>🥚 СОЗДАТЬ ПАСХАЛКУ</h4>
+        <input type="text" id="easter-name" placeholder="Название" maxlength="50">
+        <select id="easter-trigger-type">
+            <option value="">Тип триггера</option>
+            <option value="chat_word">💬 Слово в чате</option>
+            <option value="click_logo">🖱️ Клик по логотипу N раз</option>
+            <option value="url_secret">🔗 Секретная ссылка</option>
+            <option value="konami">⌨️ Конами-код</option>
+            <option value="time">🕐 По времени</option>
+            <option value="comment_word">📝 Слово в комментарии</option>
+        </select>
+        <div class="trigger-help" id="trigger-help" style="display:none;"></div>
+        <input type="text" id="easter-trigger-value" placeholder="Значение триггера" maxlength="100">
+        <select id="easter-reward-type">
+            <option value="">Тип награды</option>
+            <option value="money">💰 Деньги</option>
+            <option value="subscription">👑 Подписка</option>
+            <option value="message">💬 Сообщение</option>
+            <option value="confetti">🎉 Конфетти</option>
+            <option value="theme">🎨 Тема</option>
+        </select>
+        <input type="text" id="easter-reward-value" placeholder="Значение награды" maxlength="200">
+        <input type="number" id="easter-max-uses" placeholder="Макс использований (0=∞)" min="0" value="0">
+        <label style="display:flex;align-items:center;gap:8px;margin:10px 0;color:#ccc;">
+            <input type="checkbox" id="easter-active" checked style="width:auto;">
+            <span>✅ Активна</span>
+        </label>
+        <button class="action-btn gold" style="width:100%;padding:12px;" onclick="createEasterEgg()">🥚 СОЗДАТЬ</button>
+    </div>
+    <h4 style="font-family:'Bebas Neue';letter-spacing:2px;color:var(--gold);margin:20px 0 10px;">📋 ВСЕ ПАСХАЛКИ</h4>
+    <div id="easter-eggs-list"></div>
+</div>
         <div class="admin-section" id="admin-episodes">
             <h3 style="font-family:'Bebas Neue';letter-spacing:3px;margin-bottom:20px;color:var(--red);">🔒 БЛОКИРОВКА СЕРИЙ</h3>
             <p style="color:#888;margin-bottom:20px;">Заблокированные серии скрыты от обычных пользователей</p>
@@ -275,6 +349,7 @@
                 <button class="nav-tab" id="btn-top" onclick="showPage('top')">🏆 ТОП</button>
                 <button class="nav-tab" id="btn-reminders" onclick="showPage('reminders')">🔔 НАПОМИНАНИЯ</button>
                 <button class="nav-tab" id="btn-games" onclick="showPage('games')">🎮 ИГРЫ</button>
+                <button class="nav-tab" id="btn-market" onclick="showPage('market')">💱 БИРЖА</button>
 <button class="nav-tab" id="btn-birthdays" onclick="showPage('birthdays')">🎂 ДНИ РОЖДЕНИЯ</button>
                 <button class="nav-tab" id="btn-admin" onclick="openAdmin()" style="display:none;background:#333;">🔧 АДМИН</button>
             </div>
@@ -407,6 +482,11 @@
                 <div class="themes-grid" id="themes-grid"></div>
             </div>
             <div class="settings-section">
+                <div class="frame-section">
+    <div class="settings-title">🖱️ КУРСОР</div>
+    <p style="color:#888;font-size:0.85rem;margin-bottom:10px;">Кастомные курсоры по подписке</p>
+    <div class="cursors-grid" id="cursors-grid"></div>
+</div>
                 <div class="frame-section">
     <div class="settings-title">🖼️ РАМКА АВАТАРКИ</div>
     <p style="color:#888;font-size:0.85rem;margin-bottom:10px;">Рамки открываются по подписке</p>
@@ -818,6 +898,29 @@
     </div>
 </div>
 <!-- РАМКИ АВАТАРОК (секция в профиле уже есть — добавим через JS) -->
+ <div id="page-market" class="page">
+    <h2 class="section-header">💱 БИРЖА</h2>
+    <div class="market-page">
+        <div class="market-create">
+            <h3>📤 ВЫСТАВИТЬ НА ПРОДАЖУ</h3>
+            <select id="market-item-type" style="width:100%;padding:12px;background:#0a0a0a;border:2px solid #333;border-radius:8px;color:white;margin-bottom:10px;">
+                <option value="">Что продаёшь?</option>
+                <option value="frame_gold">🖼️ Золотая рамка</option>
+                <option value="frame_rainbow">🖼️ Радужная рамка</option>
+                <option value="frame_fire">🖼️ Огненная рамка</option>
+                <option value="sticker_pack">🎨 Набор стикеров</option>
+                <option value="color_gold">🌈 Золотой ник</option>
+                <option value="color_rainbow">🌈 Радужный ник</option>
+                <option value="promo_basic">🎬 Промокод BASIC</option>
+                <option value="promo_lux">💎 Промокод LUX</option>
+            </select>
+            <input type="number" id="market-price" placeholder="Цена (в рублях)" min="1" style="width:100%;padding:12px;background:#0a0a0a;border:2px solid #333;border-radius:8px;color:white;margin-bottom:10px;">
+            <button class="btn" onclick="createMarketListing()" style="width:100%;">📤 ВЫСТАВИТЬ</button>
+        </div>
+        <h3 style="font-family:'Bebas Neue';letter-spacing:3px;color:var(--gold);margin-bottom:15px;">🛒 ОБЪЯВЛЕНИЯ</h3>
+        <div id="market-listings"></div>
+    </div>
+</div>
     <script src="script.js"></script><div class="game-modal" id="snake-modal">
     <div class="game-content">
         <div class="game-title">🐍 ЗМЕЙКА</div>
