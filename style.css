@@ -4617,3 +4617,94 @@ body.season-spring {
     .battleship-board { max-width: 180px; }
     .bs-cell { font-size: 0.7rem; }
 }
+/* ===== КАСТОМНЫЕ КУРСОРЫ ===== */
+body.cursor-sword { cursor: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"><text y="20" font-size="20">⚔️</text></svg>'), auto; }
+body.cursor-fire { cursor: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"><text y="20" font-size="20">🔥</text></svg>'), auto; }
+body.cursor-star { cursor: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"><text y="20" font-size="20">⭐</text></svg>'), auto; }
+body.cursor-diamond { cursor: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"><text y="20" font-size="20">💎</text></svg>'), auto; }
+body.cursor-skull { cursor: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"><text y="20" font-size="20">💀</text></svg>'), auto; }
+body.cursor-crown { cursor: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"><text y="20" font-size="20">👑</text></svg>'), auto; }
+body.cursor-lightning { cursor: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"><text y="20" font-size="20">⚡</text></svg>'), auto; }
+body.cursor-heart { cursor: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"><text y="20" font-size="20">❤️</text></svg>'), auto; }
+
+.cursors-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(100px,1fr)); gap:10px; margin-top:15px; }
+.cursor-option { text-align:center; cursor:pointer; padding:15px 10px; border-radius:10px; border:2px solid #333; transition:0.3s; }
+.cursor-option:hover { border-color:var(--red); transform:scale(1.05); }
+.cursor-option.selected { border-color:var(--gold); background:rgba(255,215,0,0.1); }
+.cursor-option.locked { opacity:0.4; cursor:not-allowed; }
+.cursor-icon { font-size:2rem; margin-bottom:5px; }
+.cursor-name { font-size:0.75rem; color:#ccc; }
+.cursor-requires { font-size:0.65rem; color:var(--gold); }
+
+/* ===== БИРЖА ===== */
+.market-page { max-width:900px; margin:0 auto; }
+.market-create { background:var(--card-bg); border:1px solid #333; border-radius:15px; padding:20px; margin-bottom:20px; }
+.market-create h3 { font-family:'Bebas Neue',sans-serif; letter-spacing:3px; color:var(--gold); margin-bottom:15px; }
+.market-item { background:var(--card-bg); border:1px solid #222; border-radius:12px; padding:15px; margin-bottom:10px; display:flex; align-items:center; gap:15px; transition:0.3s; }
+.market-item:hover { border-color:var(--gold); }
+.market-item-icon { font-size:2.5rem; }
+.market-item-info { flex:1; }
+.market-item-name { font-weight:700; }
+.market-item-seller { color:#888; font-size:0.85rem; }
+.market-item-price { font-family:'Bebas Neue',sans-serif; color:var(--gold); font-size:1.3rem; letter-spacing:2px; }
+.market-buy-btn { padding:8px 20px; background:var(--gold); color:#000; border:none; border-radius:8px; font-family:'Bebas Neue',sans-serif; letter-spacing:2px; cursor:pointer; transition:0.3s; }
+.market-buy-btn:hover { transform:scale(1.05); }
+
+/* ===== ИВЕНТЫ ===== */
+.event-banner { background:linear-gradient(135deg,#FF6347,#FF4500,#FFD700); background-size:300% 300%; animation:event-glow 5s ease infinite; padding:20px; border-radius:15px; text-align:center; margin:20px 0; color:white; box-shadow:0 5px 30px rgba(255,69,0,0.5); }
+@keyframes event-glow { 0%,100%{background-position:0% 50%;} 50%{background-position:100% 50%;} }
+.event-title { font-family:'Bebas Neue',sans-serif; font-size:1.8rem; letter-spacing:5px; }
+.event-timer { font-family:'Bebas Neue',sans-serif; font-size:2.5rem; letter-spacing:3px; margin:10px 0; }
+.event-desc { font-size:0.95rem; opacity:0.9; }
+.event-create-form { background:var(--card-bg); border:1px solid #333; border-radius:15px; padding:25px; margin-bottom:20px; }
+.event-create-form h4 { font-family:'Bebas Neue',sans-serif; color:#FF6347; letter-spacing:3px; margin-bottom:15px; }
+.event-create-form input,.event-create-form textarea,.event-create-form select { width:100%; padding:12px; background:#0a0a0a; border:2px solid #333; border-radius:8px; color:white; margin-bottom:10px; font-size:1rem; }
+
+/* ===== ДАШБОРД ===== */
+.dashboard-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(250px,1fr)); gap:15px; }
+.dashboard-card { background:var(--card-bg); border:1px solid #333; border-radius:15px; padding:20px; text-align:center; }
+.dashboard-card-title { font-family:'Bebas Neue',sans-serif; letter-spacing:2px; color:#888; margin-bottom:10px; font-size:0.95rem; }
+.dashboard-card-value { font-family:'Bebas Neue',sans-serif; font-size:3rem; color:var(--red); }
+.dashboard-card-sub { color:#555; font-size:0.85rem; margin-top:5px; }
+.live-dot { display:inline-block; width:8px; height:8px; background:var(--green); border-radius:50%; margin-right:5px; animation:pulse-online 2s infinite; }
+
+/* ===== РАППОРТЫ ===== */
+.rapport-card { background:var(--card-bg); border:1px solid #00BCD4; border-radius:15px; padding:20px; margin-bottom:15px; }
+.rapport-card-header { display:flex; align-items:center; gap:12px; margin-bottom:15px; padding-bottom:10px; border-bottom:1px solid #222; }
+.rapport-card-avatar { width:50px; height:50px; border-radius:50%; background:#333; display:flex; align-items:center; justify-content:center; font-size:1.8rem; overflow:hidden; }
+.rapport-card-avatar img { width:100%; height:100%; object-fit:cover; }
+.rapport-card-name { flex:1; }
+.rapport-card-name h4 { font-family:'Bebas Neue',sans-serif; letter-spacing:2px; color:#00BCD4; }
+.rapport-card-name p { color:#888; font-size:0.85rem; }
+.rapport-restrictions { display:flex; flex-direction:column; gap:10px; }
+.rapport-restriction { display:flex; align-items:center; justify-content:space-between; padding:10px 15px; background:#0a0a0a; border-radius:8px; }
+.rapport-restriction label { color:white; font-size:0.9rem; flex:1; }
+.rapport-limit-input { width:80px; padding:8px; background:#111; border:2px solid #333; border-radius:6px; color:white; text-align:center; }
+.rapport-limit-input:focus { border-color:#00BCD4; }
+.rapport-save-btn { width:100%; padding:12px; background:#00BCD4; color:white; border:none; border-radius:8px; font-family:'Bebas Neue',sans-serif; letter-spacing:3px; cursor:pointer; margin-top:15px; }
+.rapport-save-btn:hover { background:#0097A7; }
+
+/* ===== ПАСХАЛКИ ===== */
+.easter-card { background:var(--card-bg); border:1px solid #333; border-radius:15px; padding:20px; margin-bottom:15px; border-left:4px solid var(--gold); }
+.easter-card.active { border-left-color:var(--green); background:rgba(76,175,80,0.05); }
+.easter-card.inactive { opacity:0.6; border-left-color:#555; }
+.easter-card-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; }
+.easter-card-name { font-family:'Bebas Neue',sans-serif; letter-spacing:2px; color:var(--gold); font-size:1.2rem; }
+.easter-card-trigger { color:#888; font-size:0.85rem; margin-bottom:10px; padding:8px; background:#0a0a0a; border-radius:6px; font-family:monospace; }
+.easter-card-reward { color:var(--green); font-size:0.9rem; }
+.easter-create-form { background:var(--card-bg); border:2px solid var(--gold); border-radius:15px; padding:25px; margin-bottom:25px; }
+.easter-create-form h4 { font-family:'Bebas Neue',sans-serif; letter-spacing:3px; color:var(--gold); margin-bottom:15px; }
+.easter-create-form input,.easter-create-form select,.easter-create-form textarea { width:100%; padding:12px; background:#0a0a0a; border:2px solid #333; border-radius:8px; color:white; margin-bottom:10px; font-size:1rem; }
+.trigger-help { color:#888; font-size:0.8rem; padding:10px; background:#0a0a0a; border-radius:8px; margin-bottom:15px; border-left:3px solid var(--gold); line-height:1.6; }
+
+/* Монеты пасхалки */
+.easter-coin { position:fixed; font-size:2rem; animation:coin-fall 3s linear forwards; pointer-events:none; z-index:999999; }
+@keyframes coin-fall { from{transform:translateY(-50px) rotate(0deg);opacity:1;} to{transform:translateY(110vh) rotate(720deg);opacity:0;} }
+
+@media (max-width:768px) {
+    .market-item { flex-direction:column; text-align:center; gap:10px; }
+    .dashboard-grid { grid-template-columns:1fr; }
+    .rapport-restriction { flex-direction:column; gap:8px; align-items:flex-start; }
+    .rapport-limit-input { width:100%; }
+    .cursors-grid { grid-template-columns:repeat(3,1fr); }
+}
